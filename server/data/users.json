@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1786647963252",
+    "name": "Harsh",
+    "email": "harsh9386980@gmail.com",
+    "phone": "7070799420",
+    "password": "$2b$10$gvCquK6u5B1KJyKHOtZ2bOKAKAUOpVb2.oHX7mhA9jeO1J31cLmvG",
+    "createdAt": "2026-08-13T19:06:03.252Z"
+  },
+  {
+    "id": "1787342311096",
+    "name": "Harsh Kumar",
+    "email": "harsh938698@gmail.com",
+    "phone": "70707 99420",
+    "password": "$2b$10$4eGczHywIXN0BArcWM3Dd.TlHvHw2BI1gtxHbrFzOdXYFyx0pOSP.",
+    "createdAt": "2026-08-21T19:58:31.096Z"
+  },
+  {
+    "id": "1787342379602",
+    "name": "Aryan",
+    "email": "aryan9905672@gmail.com",
+    "phone": "+91 70707 99420",
+    "password": "$2b$10$iFJ0sPxafnxcGEu2Kp6hbe7kWzMBRMhlCxGCj7/VQEIEHScwAcADa",
+    "createdAt": "2026-08-21T19:59:39.603Z"
+  },
+  {
+    "id": "1787344676357",
+    "name": "Mrityunjay",
+    "email": "harsh220306@gmail.com",
+    "phone": "6299994578",
+    "password": "$2b$10$ZXuYakK2mw9gy/gCHq6GI.KjZKWdvJcP7410BInBClVPSVDlaY5hq",
+    "createdAt": "2026-08-21T20:37:56.357Z"
+  },
+  {
+    "id": "1787396209088",
+    "name": "Test User",
+    "email": "testuser12345@example.com",
+    "phone": "+919876543210",
+    "password": "$2b$10$Gys5hGbOpWaV0Vj0ecsvx.IsbqBZvstqyW6.2fs3Td31Ot/8Ebi0O",
+    "createdAt": "2026-08-22T10:56:49.092Z"
+  }
+]

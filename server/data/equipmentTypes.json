@@ -1,0 +1,67 @@
+{
+  "equipmentTypes": [
+    {
+      "id": "EQ-TRAC",
+      "name": "Tractor (45-50 HP)",
+      "category": "heavy",
+      "rateType": "per_acre",
+      "defaultRate": 500,
+      "icon": "🚜",
+      "description": "Multi-purpose heavy tractor suitable for deep ploughing, tilling, and hauling."
+    },
+    {
+      "id": "EQ-HARV",
+      "name": "Combine Harvester",
+      "category": "heavy",
+      "rateType": "per_acre",
+      "defaultRate": 1200,
+      "icon": "🌾",
+      "description": "Efficient crop harvesting and threshing for paddy, wheat, and maize."
+    },
+    {
+      "id": "EQ-ROTA",
+      "name": "Rotavator / Rotary Tiller",
+      "category": "attachment",
+      "rateType": "per_acre",
+      "defaultRate": 400,
+      "icon": "🔄",
+      "description": "Soil preparation and fine seedbed creation prior to planting."
+    },
+    {
+      "id": "EQ-PUMP",
+      "name": "High-Pressure Water Pump",
+      "category": "irrigation",
+      "rateType": "per_hour",
+      "defaultRate": 150,
+      "icon": "💧",
+      "description": "Diesel / Solar powered high volume water pump for field irrigation."
+    },
+    {
+      "id": "EQ-SEED",
+      "name": "Automatic Seed Drill",
+      "category": "attachment",
+      "rateType": "per_acre",
+      "defaultRate": 350,
+      "icon": "🌱",
+      "description": "Precision seed sowing and simultaneous fertilizer placement."
+    },
+    {
+      "id": "EQ-SPRAY",
+      "name": "Tractor-Mounted Boom Sprayer",
+      "category": "sprayer",
+      "rateType": "per_acre",
+      "defaultRate": 250,
+      "icon": "🧴",
+      "description": "Uniform chemical and biostimulant spraying over large acres."
+    },
+    {
+      "id": "EQ-TRANS",
+      "name": "Agricultural Transport Trailer",
+      "category": "transport",
+      "rateType": "per_trip",
+      "defaultRate": 800,
+      "icon": "🚚",
+      "description": "Heavy load farm produce transport to local mandi / storage."
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "orders": [
+    {
+      "id": "ORD-3178",
+      "farmerName": "Harsh (Farmer)",
+      "farmerPhone": "+91 98765 43210",
+      "location": "Kumbalgodu, Bengaluru",
+      "broadcast": true,
+      "shopId": null,
+      "shopName": "Venkateshwara Krishi Kendra",
+      "items": [
+        {
+          "id": "CSV-106",
+          "name": "Imidacloprid Formulation",
+          "category": "insecticide",
+          "price": 350,
+          "qty": 1
+        }
+      ],
+      "totalAmount": 350,
+      "status": "ready",
+      "requestedAt": "2026-08-22T10:10:52.962Z",
+      "claimedByShopId": "SHOP-004",
+      "claimedByShopName": "Venkateshwara Krishi Kendra",
+      "shopPhone": "+91 96655 44332",
+      "claimedAt": "2026-08-22T10:11:45.131Z",
+      "updatedAt": "2026-08-22T10:12:20.761Z"
+    },
+    {
+      "id": "ORD-8074",
+      "farmerName": "Harsh (Farmer)",
+      "farmerPhone": "+91 98765 43210",
+      "location": "Kumbalgodu, Bengaluru",
+      "broadcast": true,
+      "shopId": null,
+      "shopName": "Venkateshwara Krishi Kendra",
+      "items": [
+        {
+          "id": "CSV-106",
+          "name": "Imidacloprid Formulation",
+          "category": "insecticide",
+          "price": 350,
+          "qty": 1
+        }
+      ],
+      "totalAmount": 350,
+      "status": "ready",
+      "requestedAt": "2026-08-17T17:52:54.646Z",
+      "claimedByShopId": "SHOP-004",
+      "claimedByShopName": "Venkateshwara Krishi Kendra",
+      "shopPhone": "+91 96655 44332",
+      "claimedAt": "2026-08-22T08:27:59.513Z",
+      "updatedAt": "2026-08-22T08:28:31.320Z"
+    },
+    {
+      "id": "ORD-1093",
+      "farmerName": "Ramesh Kumar",
+      "farmerPhone": "+91 98765 11223",
+      "location": "Kumbalgodu, Bengaluru",
+      "broadcast": true,
+      "items": [
+        {
+          "id": "P001",
+          "name": "GrowShield Pro",
+          "category": "fungicide",
+          "price": 450,
+          "qty": 2
+        }
+      ],
+      "totalAmount": 900,
+      "status": "confirmed",
+      "requestedAt": "2026-08-17T22:30:00.000Z",
+      "claimedByShopId": "SHOP-002",
+      "claimedByShopName": "Sri Chamundeshwari Fertilizers",
+      "shopName": "Sri Chamundeshwari Fertilizers",
+      "shopPhone": "+91 99887 76655",
+      "claimedAt": "2026-08-17T17:26:49.761Z",
+      "updatedAt": "2026-08-17T17:26:49.761Z"
+    },
+    {
+      "id": "ORD-4592",
+      "farmerName": "Harsh (Farmer)",
+      "farmerPhone": "+91 98765 43210",
+      "location": "Kumbalgodu, Bengaluru",
+      "claimedByShopId": "SHOP-001",
+      "claimedByShopName": "Shree Agro Suppliers",
+      "shopName": "Shree Agro Suppliers",
+      "shopPhone": "+91 98765 43210",
+      "items": [
+        {
+          "id": "P003",
+          "name": "BugOff Max",
+          "category": "insecticide",
+          "price": 320,
+          "qty": 1
+        }
+      ],
+      "totalAmount": 320,
+      "status": "ready",
+      "requestedAt": "2026-08-17T20:26:59.940Z"
+    },
+    {
+      "id": "ORD-1091",
+      "farmerName": "Suresh Patel",
+      "farmerPhone": "+91 99887 76655",
+      "location": "Kengeri, Bengaluru",
+      "claimedByShopId": "SHOP-001",
+      "claimedByShopName": "Shree Agro Suppliers",
+      "shopName": "Shree Agro Suppliers",
+      "shopPhone": "+91 98765 43210",
+      "items": [
+        {
+          "id": "P002",
+          "name": "NitroBurst 46",
+          "category": "fertilizer",
+          "price": 1200,
+          "qty": 1
+        }
+      ],
+      "totalAmount": 1200,
+      "status": "ready",
+      "requestedAt": "2026-08-17T19:15:00.000Z",
+      "updatedAt": "2026-08-17T17:26:40.489Z"
+    },
+    {
+      "id": "ORD-7282",
+      "farmerName": "Harsh (Farmer)",
+      "farmerPhone": "+91 98765 43210",
+      "location": "Kengeri, Bengaluru",
+      "claimedByShopId": "SHOP-002",
+      "claimedByShopName": "Sri Chamundeshwari Fertilizers",
+      "shopName": "Sri Chamundeshwari Fertilizers",
+      "shopPhone": "+91 99887 76655",
+      "items": [
+        {
+          "id": "CSV-106",
+          "name": "Imidacloprid Formulation",
+          "category": "insecticide",
+          "price": 350,
+          "qty": 1
+        }
+      ],
+      "totalAmount": 350,
+      "status": "ready",
+      "requestedAt": "2026-08-17T18:25:23.973Z",
+      "updatedAt": "2026-08-17T17:26:45.579Z"
+    }
+  ]
+}

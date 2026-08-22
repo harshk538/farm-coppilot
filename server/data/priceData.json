@@ -1,0 +1,92 @@
+{
+  "prices": {
+    "mancozeb_75wp": {
+      "productName": "Mancozeb 75% WP",
+      "brands": ["Dithane M-45", "Indofil M-45", "Uthane M-45"],
+      "priceRange": "₹180–₹350",
+      "unit": "500g",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "metalaxyl_mancozeb": {
+      "productName": "Metalaxyl 4% + Mancozeb 64% WP (Ridomil Gold)",
+      "brands": ["Ridomil Gold", "Master MZ"],
+      "priceRange": "₹500–₹750",
+      "unit": "250g",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "azoxystrobin_23sc": {
+      "productName": "Azoxystrobin 23% SC",
+      "brands": ["Amistar", "Heritage"],
+      "priceRange": "₹550–₹900",
+      "unit": "250ml",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "propiconazole_25ec": {
+      "productName": "Propiconazole 25% EC",
+      "brands": ["Tilt", "Zerox"],
+      "priceRange": "₹300–₹500",
+      "unit": "250ml",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "tricyclazole_75wp": {
+      "productName": "Tricyclazole 75% WP",
+      "brands": ["Beam", "Trooper"],
+      "priceRange": "₹350–₹550",
+      "unit": "120g",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "imidacloprid_178sl": {
+      "productName": "Imidacloprid 17.8% SL",
+      "brands": ["Confidor", "Tatamida"],
+      "priceRange": "₹250–₹450",
+      "unit": "100ml",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "sulphur_80wdg": {
+      "productName": "Sulphur 80% WDG",
+      "brands": ["Sulfex", "Thiovit Jet"],
+      "priceRange": "₹150–₹280",
+      "unit": "500g",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "carbendazim_50wp": {
+      "productName": "Carbendazim 50% WP",
+      "brands": ["Bavistin", "Sprint"],
+      "priceRange": "₹120–₹250",
+      "unit": "100g",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "tebuconazole_259ec": {
+      "productName": "Tebuconazole 25.9% EC",
+      "brands": ["Folicur", "Orius"],
+      "priceRange": "₹400–₹650",
+      "unit": "250ml",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "dap_fertilizer": {
+      "productName": "DAP (Di-Ammonium Phosphate)",
+      "brands": ["IFFCO DAP", "Coromandel DAP"],
+      "priceRange": "₹1,350–₹1,450",
+      "unit": "50kg bag",
+      "source": "Online price reference (MRP controlled)",
+      "onlineUrl": "https://www.bighaat.com"
+    },
+    "chlorothalonil_75wp": {
+      "productName": "Chlorothalonil 75% WP",
+      "brands": ["Kavach", "Daconil"],
+      "priceRange": "₹350–₹550",
+      "unit": "500g",
+      "source": "Online price reference",
+      "onlineUrl": "https://www.bighaat.com"
+    }
+  }
+}

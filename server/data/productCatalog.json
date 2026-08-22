@@ -1,0 +1,261 @@
+{
+  "products": [
+    {
+      "id": "P001",
+      "name": "GrowShield Pro",
+      "category": "fungicide",
+      "crops": [
+        "wheat",
+        "rice",
+        "cotton",
+        "soybean"
+      ],
+      "activeIngredient": "Tebuconazole 25.9% EC",
+      "dosage": "1ml per litre of water",
+      "applicationWindow": "Early disease symptoms stage",
+      "reEntryInterval": "12 hours",
+      "batchFormat": "GS-YYYY-XXXX",
+      "price": 450,
+      "unit": "250ml",
+      "verified": true,
+      "isOrganic": false,
+      "inStock": true,
+      "whyThis": "Broad-spectrum systemic fungicide effective against rust, blight and leaf spot"
+    },
+    {
+      "id": "P002",
+      "name": "NitroBurst 46",
+      "category": "fertilizer",
+      "crops": [
+        "all"
+      ],
+      "activeIngredient": "Urea 46% N",
+      "dosage": "50kg per acre",
+      "price": 1200,
+      "unit": "50kg bag",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "High nitrogen content for vegetative growth"
+    },
+    {
+      "id": "P003",
+      "name": "BugOff Max",
+      "category": "insecticide",
+      "crops": [
+        "cotton",
+        "vegetables"
+      ],
+      "activeIngredient": "Imidacloprid 17.8% SL",
+      "dosage": "0.5ml per litre of water",
+      "price": 320,
+      "unit": "100ml",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Systemic insecticide highly effective against sucking pests"
+    },
+    {
+      "id": "CSV-106",
+      "name": "Imidacloprid Formulation",
+      "category": "insecticide",
+      "crops": [
+        "tomato",
+        "chilli",
+        "cotton"
+      ],
+      "activeIngredient": "Imidacloprid, Acetamiprid, Thiamethoxam",
+      "dosage": "1.5 - 2.5ml per litre of water",
+      "price": 350,
+      "unit": "250ml",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Systemic neonicotinoid formulation effective against chewing pests and aphids"
+    },
+    {
+      "id": "CSV-109",
+      "name": "Chlorpyrifos Formulation",
+      "category": "insecticide",
+      "crops": [
+        "all"
+      ],
+      "activeIngredient": "Chlorpyrifos, Lambda-cyhalothrin, Bifenthrin",
+      "dosage": "1.5 - 2.5ml per litre of water",
+      "price": 350,
+      "unit": "250ml",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Broad spectrum organophosphate insecticide for pest control"
+    },
+    {
+      "id": "P004",
+      "name": "RootMax Bio",
+      "category": "biostimulant",
+      "crops": [
+        "all"
+      ],
+      "activeIngredient": "Humic acid 12% + Fulvic acid 3%",
+      "dosage": "2ml per litre of water",
+      "price": 280,
+      "unit": "500ml",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Improves root development and nutrient uptake"
+    },
+    {
+      "id": "P005",
+      "name": "RidomiGold MZ",
+      "category": "fungicide",
+      "crops": [
+        "tomato",
+        "potato"
+      ],
+      "activeIngredient": "Metalaxyl 8% + Mancozeb 64% WP",
+      "dosage": "2.5g per litre of water",
+      "price": 680,
+      "unit": "500g",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Gold standard for late blight control in tomato and potato"
+    },
+    {
+      "id": "P006",
+      "name": "SulfoMax 80",
+      "category": "fungicide",
+      "crops": [
+        "grapes",
+        "mango"
+      ],
+      "activeIngredient": "Wettable Sulphur 80% WDG",
+      "dosage": "3g per litre of water",
+      "price": 190,
+      "unit": "1kg",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Organic-approved contact fungicide"
+    },
+    {
+      "id": "P007",
+      "name": "AzoGuard SC",
+      "category": "fungicide",
+      "crops": [
+        "maize",
+        "wheat"
+      ],
+      "activeIngredient": "Azoxystrobin 23% SC",
+      "dosage": "1ml per litre of water",
+      "price": 520,
+      "unit": "200ml",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Broad-spectrum strobilurin for leaf blight"
+    },
+    {
+      "id": "P008",
+      "name": "TricycloGuard 75",
+      "category": "fungicide",
+      "crops": [
+        "rice"
+      ],
+      "activeIngredient": "Tricyclazole 75% WP",
+      "dosage": "0.6g per litre of water",
+      "price": 390,
+      "unit": "250g",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Highly specific against rice blast"
+    },
+    {
+      "id": "P009",
+      "name": "ThiaMax 25 WG",
+      "category": "insecticide",
+      "crops": [
+        "cotton",
+        "rice"
+      ],
+      "activeIngredient": "Thiamethoxam 25% WG",
+      "dosage": "0.3g per litre of water",
+      "price": 480,
+      "unit": "100g",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Next-generation neonicotinoid"
+    },
+    {
+      "id": "P010",
+      "name": "DAP Premium",
+      "category": "fertilizer",
+      "crops": [
+        "all"
+      ],
+      "activeIngredient": "Di-Ammonium Phosphate 18:46:0",
+      "dosage": "50kg per acre",
+      "price": 1450,
+      "unit": "50kg bag",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Best-value phosphatic fertilizer"
+    },
+    {
+      "id": "P011",
+      "name": "NPK FolioMax 19:19:19",
+      "category": "fertilizer",
+      "crops": [
+        "all"
+      ],
+      "activeIngredient": "Nitrogen 19% + Phosphorus 19% + Potassium 19%",
+      "dosage": "5g per litre of water",
+      "price": 350,
+      "unit": "1kg",
+      "verified": true,
+      "inStock": true,
+      "whyThis": "Balanced water-soluble NPK"
+    },
+    {
+      "id": "CSV-164",
+      "name": "Imidacloprid 17.8% SL",
+      "category": "insecticide",
+      "activeIngredient": "Imidacloprid 17.8% SL",
+      "dosage": "0.5ml per litre of water",
+      "price": 350,
+      "unit": "250ml",
+      "inStock": true,
+      "verified": true,
+      "whyThis": "Foliar spray at young leaf emergence stage to prevent gall formation"
+    },
+    {
+      "id": "CSV-768",
+      "name": "Dimethoate 30% EC",
+      "category": "insecticide",
+      "activeIngredient": "Dimethoate 30% EC",
+      "dosage": "1.7ml per litre of water",
+      "price": 350,
+      "unit": "250ml",
+      "inStock": true,
+      "verified": true,
+      "whyThis": "Recommended for Mango protection."
+    },
+    {
+      "id": "CSV-432",
+      "name": "Mancozeb 75% WP",
+      "category": "fungicide",
+      "activeIngredient": "Mancozeb 75% WP",
+      "dosage": "2g per litre of water",
+      "price": 350,
+      "unit": "250ml",
+      "inStock": true,
+      "verified": true,
+      "whyThis": "Foliar spray at 10-15 day intervals"
+    },
+    {
+      "id": "CSV-828",
+      "name": "Chlorothalonil 75% WP",
+      "category": "fungicide",
+      "activeIngredient": "Chlorothalonil 75% WP",
+      "dosage": "2g per litre of water",
+      "price": 350,
+      "unit": "250ml",
+      "inStock": true,
+      "verified": true,
+      "whyThis": "Recommended for Tomato protection."
+    }
+  ]
+}

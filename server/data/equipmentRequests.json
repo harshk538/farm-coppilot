@@ -1,0 +1,66 @@
+{
+  "requests": [
+    {
+      "id": "REQ-3935",
+      "farmerName": "Rahul Patel",
+      "farmerPhone": "+91 98765 99887",
+      "location": "Kaggalipura, Bengaluru",
+      "equipmentTypeId": "EQ-TRAC",
+      "equipmentTypeName": "Tractor (45-50 HP)",
+      "workType": "Ploughing & Land Prep",
+      "landAreaAcres": 3,
+      "requiredDate": "Tomorrow",
+      "preferredTime": "08:00 AM - 02:00 PM",
+      "status": "pending_quotes",
+      "requestedAt": "2026-08-22T10:13:14.687Z",
+      "quotes": [
+        {
+          "quoteId": "Q-291",
+          "shopId": "SHOP-003",
+          "shopName": "Hassan Agro Bio Tech",
+          "shopPhone": "+91 97766 55443",
+          "ownerId": "OWN-005",
+          "ownerName": "Manjunath Swamy",
+          "machineName": "Kirloskar 5HP Heavy Diesel Water Pump",
+          "calculatedPrice": 1500,
+          "ownerShare": 1350,
+          "vendorCommission": 150,
+          "distanceKm": "2.8 km",
+          "rating": 4.5,
+          "quotedAt": "2026-08-22T10:13:59.080Z"
+        }
+      ]
+    },
+    {
+      "id": "REQ-5275",
+      "farmerName": "Rahul Patel",
+      "farmerPhone": "+91 98765 99887",
+      "location": "Kaggalipura, Bengaluru",
+      "equipmentTypeId": "EQ-TRAC",
+      "equipmentTypeName": "Tractor (45-50 HP)",
+      "workType": "Ploughing & Land Prep",
+      "landAreaAcres": 3,
+      "requiredDate": "Tomorrow",
+      "preferredTime": "08:00 AM - 02:00 PM",
+      "status": "pending_quotes",
+      "requestedAt": "2026-08-18T20:47:16.153Z",
+      "quotes": [
+        {
+          "quoteId": "Q-529",
+          "shopId": "SHOP-002",
+          "shopName": "Sri Chamundeshwari Fertilizers",
+          "shopPhone": "+91 99887 76655",
+          "ownerId": "OWN-003",
+          "ownerName": "Venkatesh Reddy (Farmer)",
+          "machineName": "Sonalika DI 745 III (50 HP)",
+          "calculatedPrice": 1500,
+          "ownerShare": 1350,
+          "vendorCommission": 150,
+          "distanceKm": "3.9 km",
+          "rating": 4.9,
+          "quotedAt": "2026-08-22T08:30:01.134Z"
+        }
+      ]
+    }
+  ]
+}

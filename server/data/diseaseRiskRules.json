@@ -1,0 +1,116 @@
+{
+  "rules": [
+    {
+      "disease": "Late Blight",
+      "crops": ["Tomato", "Potato"],
+      "conditions": {
+        "humidityMin": 80,
+        "tempMin": 15,
+        "tempMax": 25,
+        "rainfallMin": 5
+      },
+      "risk": "High",
+      "icon": "🍂",
+      "reason": "High humidity (>80%) with cool-moderate temperatures (15-25°C) and recent rainfall create ideal conditions for Phytophthora infestans",
+      "action": "Apply preventive fungicide (Metalaxyl + Mancozeb). Avoid overhead irrigation. Ensure good air circulation between plants."
+    },
+    {
+      "disease": "Early Blight",
+      "crops": ["Tomato", "Potato"],
+      "conditions": {
+        "humidityMin": 70,
+        "tempMin": 24,
+        "tempMax": 35,
+        "rainfallMin": 0
+      },
+      "risk": "Medium",
+      "icon": "🍃",
+      "reason": "Warm temperatures (24-35°C) with moderate humidity (>70%) favor Alternaria solani growth",
+      "action": "Monitor plants closely. Apply Mancozeb or Azoxystrobin at first sign of concentric ring spots on lower leaves."
+    },
+    {
+      "disease": "Powdery Mildew",
+      "crops": ["Grape", "Mango", "Cucurbits", "Wheat"],
+      "conditions": {
+        "humidityMin": 60,
+        "tempMin": 20,
+        "tempMax": 30,
+        "rainfallMin": 0
+      },
+      "risk": "Medium",
+      "icon": "🌿",
+      "reason": "Moderate humidity (>60%) with warm temperatures (20-30°C) and dry conditions encourage powdery mildew fungi",
+      "action": "Apply Sulphur 80% WDG preventively. Ensure good spacing between plants. Avoid excessive nitrogen fertilization."
+    },
+    {
+      "disease": "Downy Mildew",
+      "crops": ["Grape", "Onion", "Cucurbits"],
+      "conditions": {
+        "humidityMin": 85,
+        "tempMin": 18,
+        "tempMax": 25,
+        "rainfallMin": 10
+      },
+      "risk": "High",
+      "icon": "💧",
+      "reason": "Very high humidity (>85%) with cool temperatures (18-25°C) and significant rainfall create optimal conditions for downy mildew",
+      "action": "Spray copper-based fungicide immediately. Remove lower infected leaves. Improve drainage around root zone."
+    },
+    {
+      "disease": "Leaf Spot",
+      "crops": ["Tomato", "Rice", "Chilli", "Onion"],
+      "conditions": {
+        "humidityMin": 75,
+        "tempMin": 22,
+        "tempMax": 32,
+        "rainfallMin": 3
+      },
+      "risk": "Medium",
+      "icon": "🍂",
+      "reason": "Warm humid conditions (>75% humidity, 22-32°C) with light rainfall promote Cercospora and other leaf spot pathogens",
+      "action": "Apply Mancozeb foliar spray at 10-day intervals. Remove and destroy infected leaves. Avoid overhead watering."
+    },
+    {
+      "disease": "Blast (Rice)",
+      "crops": ["Rice"],
+      "conditions": {
+        "humidityMin": 85,
+        "tempMin": 20,
+        "tempMax": 30,
+        "rainfallMin": 5
+      },
+      "risk": "High",
+      "icon": "🌾",
+      "reason": "High humidity (>85%) and moderate temperatures (20-30°C) with wetness are highly favorable for Magnaporthe oryzae",
+      "action": "Apply Tricyclazole 75% WP immediately. Reduce nitrogen dose. Maintain shallow standing water in fields."
+    },
+    {
+      "disease": "Rust",
+      "crops": ["Wheat", "Soybean", "Coffee"],
+      "conditions": {
+        "humidityMin": 70,
+        "tempMin": 15,
+        "tempMax": 25,
+        "rainfallMin": 2
+      },
+      "risk": "Medium",
+      "icon": "🟤",
+      "reason": "Cool-moderate temperatures (15-25°C) with moderate humidity (>70%) and dew formation favor rust spore germination",
+      "action": "Scout fields regularly. Apply Propiconazole or Tebuconazole at flag leaf stage. Use resistant varieties if available."
+    },
+    {
+      "disease": "Anthracnose",
+      "crops": ["Chilli", "Mango", "Bean"],
+      "conditions": {
+        "humidityMin": 80,
+        "tempMin": 25,
+        "tempMax": 35,
+        "rainfallMin": 8
+      },
+      "risk": "High",
+      "icon": "🌶️",
+      "reason": "Warm wet conditions (>80% humidity, 25-35°C) with heavy rainfall create splashing that spreads Colletotrichum spores",
+      "action": "Spray Carbendazim + Mancozeb. Harvest ripe fruits promptly. Ensure proper drainage and spacing."
+    }
+  ]
+}

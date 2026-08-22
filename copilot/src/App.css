@@ -1,0 +1,40 @@
+/* Ensure smooth page transitions */
+main > * {
+  animation: fadeUp 0.5s ease-out both;
+}
+
+/* Navbar Responsive Rules */
+@media (max-width: 768px) {
+  .nav-desktop-only {
+    display: none !important;
+  }
+  .nav-mobile-only {
+    display: flex !important;
+  }
+  .nav-grid-container {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 0 16px !important;
+  }
+  .home-desktop-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .nav-desktop-only {
+    display: flex !important;
+  }
+  .nav-mobile-only {
+    display: none !important;
+  }
+  .nav-grid-container {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    gap: 24px !important;
+    padding: 0 32px !important;
+  }
+  .home-desktop-only {
+    display: block !important;
+  }
+}
