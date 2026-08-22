@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Link } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
+import { API_BASE_URL } from './config';
 
-const API_BASE = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '/api/vendor' : `http://${window.location.hostname}:5005/api/vendor`;
-const EQUIP_API = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '/api/equipment' : `http://${window.location.hostname}:5005/api/equipment`;
+const API_BASE = `${API_BASE_URL}/api/vendor`;
+const EQUIP_API = `${API_BASE_URL}/api/equipment`;
 
 const DEFAULT_SHOPS = [
   { id: 'SHOP-001', name: 'Shree Agro Suppliers', location: 'Kumbalgodu, Bengaluru', phone: '+91 98765 43210', license: 'AG-KA-88219' },

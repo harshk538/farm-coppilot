@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
-const getApiUrl = (path) => typeof window !== 'undefined' && window.location.protocol === 'https:' ? path : `http://${window.location.hostname}:5005${path}`;
+const getApiUrl = (path) => `${API_BASE_URL}${path}`;
 
 export default function Weather({ user }) {
   const [weather, setWeather] = useState(null);

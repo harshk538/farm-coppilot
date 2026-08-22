@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 export default function AuthModal({ mode, onClose, onSuccess }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
@@ -22,8 +23,7 @@ export default function AuthModal({ mode, onClose, onSuccess }) {
         ? { email: form.email, password: form.password }
         : { name: form.name, email: form.email, phone: form.phone, password: form.password };
 
-      const apiUrl = typeof window !== 'undefined' && window.location.protocol === 'https:' ? endpoint : `http://${window.location.hostname}:5005${endpoint}`;
-      const res = await axios.post(apiUrl, payload);
+      const res = await axios.post(`${API_BASE_URL}${endpoint}`, payload);
       if (res.data.success) {
         localStorage.setItem('fc_token', res.data.token);
         localStorage.setItem('fc_user', JSON.stringify(res.data.user));

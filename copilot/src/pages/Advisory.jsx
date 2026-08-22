@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 const INDIAN_LANGUAGES = [
   { name: 'English', code: 'en-IN', native: 'English' },
@@ -183,8 +184,7 @@ export default function Advisory({ user, onLogin }) {
         formData.append('image', image);
       }
 
-      const apiUrl = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '/api/advisory' : `http://${window.location.hostname}:5005/api/advisory`;
-      const res = await axios.post(apiUrl, formData, {
+      const res = await axios.post(`${API_BASE_URL}/api/advisory`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       const data = res.data?.data || null;

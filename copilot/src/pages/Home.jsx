@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 /* ─────────────────────────────────────────────
    GLOBAL STYLES — hero + showcase keyframes
@@ -716,8 +717,7 @@ export default function Home() {
   const [aiStatus, setAiStatus] = useState('checking');
 
   useEffect(() => {
-    const apiUrl = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '/api/verify/gemini-handshake' : `http://${window.location.hostname}:5005/api/verify/gemini-handshake`;
-    axios.get(apiUrl)
+    axios.get(`${API_BASE_URL}/api/verify/gemini-handshake`)
       .then(res => setAiStatus(res.data.success ? 'online' : 'quota_exhausted'))
       .catch(() => setAiStatus('offline'));
   }, []);

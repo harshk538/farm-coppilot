@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
-const API_BASE = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '/api/equipment' : `http://${window.location.hostname}:5005/api/equipment`;
+const API_BASE = `${API_BASE_URL}/api/equipment`;
 
 export default function Equipment() {
   const [activeTab, setActiveTab] = useState('renter'); // 'renter' | 'owner'

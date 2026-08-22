@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
-const VENDOR_API = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '/api/vendor' : `http://${window.location.hostname}:5005/api/vendor`;
+const VENDOR_API = `${API_BASE_URL}/api/vendor`;
 
 export default function Orders() {
   const [recommendedProducts, setRecommendedProducts] = useState([]);

@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
+import { API_BASE_URL } from '../config';
 
 const mapContainerStyle = { width: '100%', height: '100%', minHeight: '500px', borderRadius: '0.75rem' };
-const getApiUrl = (path) => typeof window !== 'undefined' && window.location.protocol === 'https:' ? path : `http://${window.location.hostname}:5005${path}`;
+const getApiUrl = (path) => `${API_BASE_URL}${path}`;
 
 const getCropEmoji = (crop) => ({
   Tomato: '🍅', Potato: '🥔', Wheat: '🌾', Rice: '🌾', Cotton: '☁️',
