@@ -6,4 +6,4 @@ const isLocal = typeof window !== 'undefined' &&
 
 export const API_BASE_URL = isLocal
   ? ''
-  : 'https://farm-copilot-backend.onrender.com';
+  : 'https://farm-copilot-backend-t18x.onrender.com';
