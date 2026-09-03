@@ -1212,8 +1212,10 @@ export default function App() {
     o => o.status === 'ready' && o.claimedByShopId === activeShop.id && o.delivery
   ).length;
 
+  const routerBasename = typeof window !== 'undefined' && window.location.pathname.startsWith('/vendor') ? '/vendor' : '';
+
   return (
-    <BrowserRouter basename="/vendor">
+    <BrowserRouter basename={routerBasename}>
       <div className="min-h-screen bg-[#0a0a0c] text-white">
         <div className="vendor-orb vendor-orb-1" />
         <div className="vendor-orb vendor-orb-2" />
