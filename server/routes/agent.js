@@ -235,7 +235,11 @@ router.post('/chat', upload.single('image'), async (req, res) => {
   } catch (error) {
     console.error('❌ Agent error:', error.message);
     if (imageFile && fs.existsSync(imageFile.path)) { try { fs.unlinkSync(imageFile.path); } catch {} }
-    res.status(500).json({ success: false, message: 'The assistant ran into a problem. Please try again.' });
+    const isRateLimit = error.message && (error.message.includes('429') || error.message.includes('Quota exceeded'));
+    const message = isRateLimit
+      ? 'The AI assistant is temporarily rate-limited by Google Gemini API (Quota Exceeded / 429). Please wait a moment and try again.'
+      : 'The assistant ran into a problem. Please try again.';
+    res.status(isRateLimit ? 429 : 500).json({ success: false, message });
   }
 });
 

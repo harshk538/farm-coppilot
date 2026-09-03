@@ -101,7 +101,11 @@ ${contextText}`,
     res.json({ success: true, reply });
   } catch (error) {
     console.error('❌ Chatbot error:', error.message);
-    res.status(500).json({ success: false, message: 'The assistant is having trouble right now. Please try again.' });
+    const isRateLimit = error.message && (error.message.includes('429') || error.message.includes('Quota exceeded'));
+    const message = isRateLimit
+      ? 'The AI assistant is temporarily rate-limited by Google Gemini API (Quota Exceeded / 429). Please wait a moment and try again.'
+      : 'The assistant is having trouble right now. Please try again.';
+    res.status(isRateLimit ? 429 : 500).json({ success: false, message });
   }
 });
 

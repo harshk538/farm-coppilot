@@ -56,7 +56,8 @@ export default function AgentWidget({ user }) {
       const replyText = res.data?.success ? res.data.reply : (res.data?.message || 'Something went wrong. Please try again.');
       setMessages(m => [...m, { role: 'assistant', text: replyText }]);
     } catch (err) {
-      setMessages(m => [...m, { role: 'assistant', text: 'Could not reach the assistant. Please check your connection and try again.' }]);
+      const errMsg = err.response?.data?.message || 'Could not reach the assistant. Please check your connection and try again.';
+      setMessages(m => [...m, { role: 'assistant', text: errMsg }]);
     } finally {
       setLoading(false);
     }
