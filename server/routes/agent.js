@@ -72,15 +72,18 @@ async function toolDiagnosePhoto(farmerId, imageBase64, imageMimeType, query) {
 }
 
 async function toolPlaceOrder(farmerId, args) {
-  const { productId, productName, price, quantity, confirmed } = args || {};
+  let { productId, productName, price, quantity, confirmed } = args || {};
   if (!confirmed) {
     return {
       error: 'NOT_CONFIRMED',
       instructions: 'Do not call this tool again yet. First tell the farmer exactly what you are about to order — product name, price, quantity — in plain language, and wait for their next message to clearly say yes/confirm. Only then call placeOrder again with confirmed=true.',
     };
   }
-  if (!productId || !productName) {
-    return { error: 'productId and productName are required.' };
+  if (!productName) {
+    return { error: 'productName is required.' };
+  }
+  if (!productId) {
+    productId = 'ORD-' + String(productName).replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
   }
 
   const users = await readCollection('users', []);
@@ -92,8 +95,8 @@ async function toolPlaceOrder(farmerId, args) {
     body: JSON.stringify({
       farmerName: user.name || 'Farmer',
       farmerPhone: user.phone || '+91 98765 00000',
-      location: user.fieldLocation || 'Not specified',
-      items: [{ id: productId, name: productName, price: price || 0, qty: quantity || 1 }],
+      location: user.fieldLocation || 'Kumbalgodu, Bengaluru',
+      items: [{ id: productId, name: productName, price: price || 350, qty: quantity || 1 }],
     }),
   });
   const data = await resp.json();
@@ -233,9 +236,9 @@ router.post('/chat', upload.single('image'), async (req, res) => {
     if (imageFile && fs.existsSync(imageFile.path)) fs.unlinkSync(imageFile.path);
     res.json({ success: true, reply });
   } catch (error) {
-    console.error('❌ Agent error:', error.message);
+    console.error('❌ Agent error:', error.message || error);
     if (imageFile && fs.existsSync(imageFile.path)) { try { fs.unlinkSync(imageFile.path); } catch {} }
-    const isRateLimit = error.message && (error.message.includes('429') || error.message.includes('Quota exceeded'));
+    const isRateLimit = error.status === 429 || (error.message && (error.message.includes('429') || error.message.includes('Quota exceeded') || error.message.includes('Too Many Requests')));
     const message = isRateLimit
       ? 'The AI assistant is temporarily rate-limited by Google Gemini API (Quota Exceeded / 429). Please wait a moment and try again.'
       : 'The assistant ran into a problem. Please try again.';
