@@ -3,9 +3,23 @@ import { useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 import { API_BASE_URL } from '../config';
+import { useTracking } from '../context/TrackingContext';
 
 const mapContainerStyle = { width: '100%', height: '100%', minHeight: '500px', borderRadius: '0.75rem' };
 const getApiUrl = (path) => `${API_BASE_URL}${path}`;
+
+// Real-world coordinates for the 4 vendor shops, used to draw the equipment delivery route
+const SHOP_LOCATIONS = {
+  'SHOP-001': { lat: 12.8898, lng: 77.4519 }, // Kumbalgodu, Bengaluru
+  'SHOP-002': { lat: 12.9081, lng: 77.4835 }, // Kengeri, Bengaluru
+  'SHOP-003': { lat: 12.8004, lng: 77.5773 }, // Bannerghatta, Bengaluru
+  'SHOP-004': { lat: 12.8763, lng: 77.6031 }, // Tavarekere, Bengaluru
+};
+// Default farmer field location shown on the map
+const FARMER_FIELD_LOCATION = { lat: 12.8398, lng: 77.5192 }; // Kaggalipura, Bengaluru
+
+// Simulated delivery duration for the demo tracking map (kept in sync with the backend's DELIVERY_DURATION_MS)
+const DELIVERY_DURATION_MS = 2 * 60 * 1000; // 2 minutes
 
 const getCropEmoji = (crop) => ({
   Tomato: '🍅', Potato: '🥔', Wheat: '🌾', Rice: '🌾', Cotton: '☁️',
@@ -20,6 +34,7 @@ export default function Treatment() {
   const [cropName, setCropName] = useState('');
   const [result, setResult] = useState(null);
   const [shops, setShops] = useState([]);
+  const [nearestTenOnly, setNearestTenOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [shopLoading, setShopLoading] = useState(false);
   const [shopSource, setShopSource] = useState('');
@@ -32,6 +47,11 @@ export default function Treatment() {
   const [advisoryProducts, setAdvisoryProducts] = useState([]);
   const [distanceInfo, setDistanceInfo] = useState(null);
   const [activeOrder, setActiveOrder] = useState(null);
+  const [equipTrack, setEquipTrack] = useState(null); // { reqId, machine, owner, shopName, bookedAtMs } when tracking equipment delivery
+  const [equipDriverPos, setEquipDriverPos] = useState(null);
+  const [equipArrived, setEquipArrived] = useState(false);
+  const [vendorShopCoords, setVendorShopCoords] = useState(null); // { shopId: {lat,lng} }, real GPS from the vendor shop registry
+  const equipPathRef = useRef([]);
   const mapRef = useRef(null);
   const autoSearchDone = useRef(false);
   const dropdownRef = useRef(null);
@@ -47,7 +67,7 @@ export default function Treatment() {
       if (stored) {
         setAdvisoryProducts(JSON.parse(stored));
       }
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   // Poll active order status
@@ -62,7 +82,7 @@ export default function Treatment() {
               setActiveOrder(updated);
             }
           }
-        }).catch(() => {});
+        }).catch(() => { });
     }, 3000);
     return () => clearInterval(interval);
   }, [activeOrder]);
@@ -118,48 +138,58 @@ export default function Treatment() {
     }
   }, [searchParams]);
 
-const getFallbackShops = (baseLat, baseLng) => {
-  const lat = parseFloat(baseLat) || 12.9716;
-  const lng = parseFloat(baseLng) || 77.5946;
-  return [
-    {
-      name: "Udaya Fertilizers and Chemicals",
-      address: "Kaggalipura Main Road, Kanakapura Rd, Bengaluru",
-      rating: 4.6,
-      phone: "+91 98450 12345",
-      location: { lat: lat + 0.003, lng: lng - 0.002 },
-      availability: "In Stock",
-      distance: "1.8 km"
-    },
-    {
-      name: "Sri Beereshwara Fertilizers",
-      address: "Bolare Kanakapura Main Road, Bengaluru",
-      rating: 4.7,
-      phone: "+91 97766 55443",
-      location: { lat: lat - 0.008, lng: lng + 0.004 },
-      availability: "In Stock",
-      distance: "4.5 km"
-    },
-    {
-      name: "Sri Chamundeshwari Fertilizers",
-      address: "Gonipura Road, Near Thittalli, Bengaluru",
-      rating: 4.8,
-      phone: "+91 99887 76655",
-      location: { lat: lat + 0.007, lng: lng - 0.005 },
-      availability: "In Stock",
-      distance: "10.1 km"
-    },
-    {
-      name: "SHREE AGRO SUPPLIERS",
-      address: "Pavamana Nagar, Kothnoor Main Road, Bengaluru",
-      rating: 4.9,
-      phone: "+91 98765 43210",
-      location: { lat: lat + 0.012, lng: lng + 0.010 },
-      availability: "In Stock",
-      distance: "12.4 km"
-    }
-  ];
-};
+
+  const getFallbackShops = (baseLat, baseLng) => {
+    const lat = parseFloat(baseLat) || 12.9716;
+    const lng = parseFloat(baseLng) || 77.5946;
+    const p = Math.PI / 180;
+    const rawShops = [
+      {
+        name: "Shree Agro Suppliers",
+        address: "Main Market Road, Near Bus Stand, Kumbalgodu, Bengaluru",
+        rating: 4.6,
+        phone: "+91 98765 43210",
+        location: { lat: lat + 0.008, lng: lng + 0.006 },
+        availability: "In Stock"
+      },
+      {
+        name: "Sri Chamundeshwari Fertilizers",
+        address: "Station Road, Opposite SBI Bank, Kengeri, Bengaluru",
+        rating: 4.4,
+        phone: "+91 99887 76655",
+        location: { lat: lat - 0.007, lng: lng + 0.012 },
+        availability: "In Stock"
+      },
+      {
+        name: "Hassan Agro Bio Tech",
+        address: "NH-48, Agricultural Market Yard, Bannerghatta, Bengaluru",
+        rating: 4.5,
+        phone: "+91 97766 55443",
+        location: { lat: lat + 0.012, lng: lng - 0.009 },
+        availability: "Limited Stock"
+      },
+      {
+        name: "Venkateshwara Krishi Kendra",
+        address: "Tavarekere Main Road, Near bus stand, Tavarekere, Bengaluru",
+        rating: 4.6,
+        phone: "+91 96655 44332",
+        location: { lat: lat + 0.005, lng: lng - 0.012 },
+        availability: "In Stock"
+      }
+    ];
+
+    return rawShops.map(shop => {
+      const a = 0.5 - Math.cos((shop.location.lat - lat) * p)/2 + 
+                Math.cos(lat * p) * Math.cos(shop.location.lat * p) * 
+                (1 - Math.cos((shop.location.lng - lng) * p))/2;
+      const d = 12742 * Math.asin(Math.sqrt(a));
+      return {
+        ...shop,
+        distanceVal: d,
+        distance: d.toFixed(1) + " km"
+      };
+    }).filter(shop => shop.distanceVal <= 15.0).sort((a, b) => a.distanceVal - b.distanceVal);
+  };
 
   const resetMap = () => {
     setSelectedShop(null);
@@ -178,6 +208,9 @@ const getFallbackShops = (baseLat, baseLng) => {
           if (res.data.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
             setShops(res.data.data);
             setShopSource(res.data.source);
+            // Auto-sync nearest 10 shops into the vendor portal's Active Store
+            // Context list. Fire-and-forget: never blocks the farmer's map.
+            axios.post(getApiUrl('/api/vendor/sync-shops'), { shops: res.data.data.slice(0, 10) }).catch(() => {});
           } else {
             setShops(getFallbackShops(lat, lng));
           }
@@ -256,6 +289,154 @@ const getFallbackShops = (baseLat, baseLng) => {
 
   const onMapLoad = useCallback((map) => { mapRef.current = map; }, []);
 
+  // Auto-route to vendor shop when navigating from Orders page with ?routeShop=ShopName
+  const routeShopDone = useRef(false);
+  useEffect(() => {
+    const routeShopName = searchParams.get('routeShop');
+    if (!routeShopName || routeShopDone.current || shops.length === 0 || !isLoaded) return;
+
+    // Find matching shop by name (case-insensitive partial match)
+    const targetShop = shops.find(s =>
+      s.name.toLowerCase().includes(routeShopName.toLowerCase()) ||
+      routeShopName.toLowerCase().includes(s.name.toLowerCase())
+    );
+
+    if (targetShop) {
+      routeShopDone.current = true;
+      // Delay slightly to ensure map is ready
+      setTimeout(() => {
+        handleShopSelect(targetShop);
+        // Scroll to the map section
+        const mapSection = document.getElementById('treatment-map-section');
+        if (mapSection) {
+          mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 600);
+    }
+  }, [searchParams, shops, isLoaded, handleShopSelect]);
+
+  // Real GPS location for every vendor shop (demo + auto-synced real ones), used as the
+  // route's starting point instead of guessing — loaded once, before tracking begins.
+  const [shopCoordsLoaded, setShopCoordsLoaded] = useState(false);
+  useEffect(() => {
+    axios.get(getApiUrl('/api/vendor/shops'))
+      .then(res => {
+        if (res.data.success) {
+          const map = {};
+          for (const s of res.data.data) {
+            if (s.coords) map[s.id] = s.coords;
+          }
+          setVendorShopCoords(map);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setShopCoordsLoaded(true));
+  }, []);
+
+  // Delivery tracking — reached from either the Equipment page's "Track" button (?trackEquip=...)
+  // or the Orders page's "Track vendor-to-you route" button (?trackOrder=...), both &shopId=...&bookedAt=...
+  const { tracking: globalTracking, startTracking, stopTracking: stopGlobalTracking } = useTracking();
+  const equipTrackDone = useRef(false);
+  useEffect(() => {
+    if (equipTrackDone.current || !isLoaded || !window.google || !shopCoordsLoaded) return;
+
+    const equipReqId = searchParams.get('trackEquip');
+    const orderId = searchParams.get('trackOrder');
+    const trackId = equipReqId || orderId;
+    const shopId = searchParams.get('shopId');
+
+    let trackInfo = null;
+
+    if (trackId && shopId) {
+      // Fresh "Track" click from Orders/Equipment — build tracking info from the
+      // URL, and push it into the shared context so it survives page switches.
+      const isOrder = !!orderId;
+      const bookedAt = searchParams.get('bookedAt');
+      const destLat = parseFloat(searchParams.get('destLat'));
+      const destLng = parseFloat(searchParams.get('destLng'));
+      const hasRealDestination = isOrder && !isNaN(destLat) && !isNaN(destLng);
+      trackInfo = {
+        id: trackId,
+        type: isOrder ? 'order' : 'equipment',
+        shopId,
+        label: isOrder ? `Order ${orderId}` : (searchParams.get('machine') || 'Equipment'),
+        agent: isOrder ? (searchParams.get('shopName') || 'Vendor') : (searchParams.get('owner') || ''),
+        shopName: searchParams.get('shopName') || '',
+        bookedAtMs: bookedAt ? new Date(bookedAt).getTime() : Date.now(),
+        destination: hasRealDestination ? { lat: destLat, lng: destLng } : FARMER_FIELD_LOCATION,
+      };
+      startTracking(trackInfo);
+    } else if (globalTracking) {
+      // Landing on this page while a delivery is already being tracked from
+      // another page — pick up right where it really is (real elapsed time).
+      trackInfo = globalTracking;
+    }
+
+    if (!trackInfo) return;
+    equipTrackDone.current = true;
+
+    setEquipTrack(trackInfo);
+
+    const origin = (vendorShopCoords && vendorShopCoords[trackInfo.shopId]) || SHOP_LOCATIONS[trackInfo.shopId] || SHOP_LOCATIONS['SHOP-001'];
+    const destination = trackInfo.destination || FARMER_FIELD_LOCATION;
+
+    new window.google.maps.DirectionsService().route({
+      origin,
+      destination,
+      travelMode: window.google.maps.TravelMode.DRIVING,
+    }, (result, status) => {
+      if (status === window.google.maps.DirectionsStatus.OK) {
+        setDirections(result);
+        const leg = result.routes[0].legs[0];
+        setRouteInfo({ distance: leg.distance.text, duration: leg.duration.text });
+        equipPathRef.current = result.routes[0].overview_path.map(p => ({ lat: p.lat(), lng: p.lng() }));
+        setEquipDriverPos(equipPathRef.current[0] || origin);
+      }
+    });
+
+    setTimeout(() => {
+      const mapSection = document.getElementById('treatment-map-section');
+      if (mapSection) mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  }, [searchParams, isLoaded, globalTracking, startTracking, shopCoordsLoaded, vendorShopCoords]);
+
+  // Move the equipment marker based on real elapsed time since booking (not a local counter), so the
+  // "delivery" keeps progressing in the background — closing/reopening this page just resumes correctly.
+  // Fit map bounds to show user location and all shops within 10 km
+  useEffect(() => {
+    if (mapRef.current && window.google && shops.length > 0 && !equipTrack) {
+      try {
+        const bounds = new window.google.maps.LatLngBounds();
+        if (userLocation?.lat && userLocation?.lng) {
+          bounds.extend(new window.google.maps.LatLng(userLocation.lat, userLocation.lng));
+        }
+        shops.forEach(shop => {
+          if (shop.location?.lat && shop.location?.lng) {
+            bounds.extend(new window.google.maps.LatLng(shop.location.lat, shop.location.lng));
+          }
+        });
+        mapRef.current.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
+      } catch (e) {
+        console.error("Failed to fit map bounds:", e);
+      }
+    }
+  }, [shops, userLocation, equipTrack, isLoaded]);
+
+  useEffect(() => {
+    if (!equipTrack || !equipPathRef.current.length) return;
+    const tick = () => {
+      const elapsed = Date.now() - equipTrack.bookedAtMs;
+      const fraction = Math.min(1, Math.max(0, elapsed / DELIVERY_DURATION_MS));
+      const path = equipPathRef.current;
+      const index = Math.min(path.length - 1, Math.floor(fraction * (path.length - 1)));
+      setEquipDriverPos(path[index]);
+      setEquipArrived(fraction >= 1);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [equipTrack, directions]);
+
   const renderStars = (rating) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
       {[...Array(5)].map((_, i) => (
@@ -278,8 +459,11 @@ const getFallbackShops = (baseLat, baseLng) => {
   const displayLabel = diseaseFreeText
     ? diseaseFreeText
     : selectedDisease
-    ? diseases.find(d => d.key === selectedDisease)?.label || selectedDisease
-    : '';
+      ? diseases.find(d => d.key === selectedDisease)?.label || selectedDisease
+      : '';
+
+  // Shops are already sorted nearest-first by the backend, so "nearest 5" is just the first 5
+  const displayedShops = nearestTenOnly ? shops.slice(0, 10) : shops;
 
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '60px' }}>
@@ -578,9 +762,13 @@ const getFallbackShops = (baseLat, baseLng) => {
           }}>
             <span style={{ fontSize: '18px' }}>📍</span>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#4ade80' }}>{shops.length} shops nearby</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#4ade80' }}>
+                {nearestTenOnly
+                  ? `Showing ${displayedShops.length} nearest of ${shops.length} shops (within 10 km)`
+                  : `${shops.length} shops nearby (within 10 km)`}
+              </div>
               <div style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
-                {shops.slice(0, 3).map(s => s.name).join(' · ')}{shops.length > 3 ? ' …' : ''}
+                {displayedShops.slice(0, 3).map(s => s.name).join(' · ')}{displayedShops.length > 3 ? ' …' : ''}
               </div>
             </div>
           </div>
@@ -588,13 +776,29 @@ const getFallbackShops = (baseLat, baseLng) => {
       </div>
 
       {/* ═══ MAP & SHOP LIST ═══ */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div id="treatment-map-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.3px' }}>🏪 Nearby Agri Shops</h2>
-            <p style={{ fontSize: '12px', color: '#555', margin: '4px 0 0' }}>Click a shop to see the driving route</p>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.3px' }}>
+              {equipTrack
+                ? (equipArrived ? `✅ Arrived — ${equipTrack.label}` : `${equipTrack.type === 'order' ? '📦' : '🚜'} Tracking ${equipTrack.id} — ${equipTrack.label}`)
+                : '🏪 Nearby Agri Shops'}
+            </h2>
+            <p style={{ fontSize: '12px', color: '#555', margin: '4px 0 0' }}>
+              {equipTrack
+                ? (equipArrived
+                  ? `${equipTrack.agent} has reached your location. An SMS has been sent to your phone.`
+                  : `${equipTrack.agent} is on the way from ${equipTrack.shopName}${routeInfo ? ` · ${routeInfo.distance} · ETA ${routeInfo.duration}` : ''} · keeps moving even if you leave this page`)
+                : 'Click a shop to see the driving route'}
+            </p>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
+            {equipTrack && (
+              <button onClick={() => { setEquipTrack(null); setDirections(null); setRouteInfo(null); setEquipDriverPos(null); setEquipArrived(false); stopGlobalTracking(); }} style={{
+                background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
+                color: '#888', fontSize: '12px', fontWeight: 500, padding: '6px 14px', cursor: 'pointer',
+              }}>✕ Stop Tracking</button>
+            )}
             <button onClick={() => fetchNearbyShops(true)} style={{
               background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '8px',
               color: '#60a5fa', fontSize: '12px', fontWeight: 500, padding: '6px 14px', cursor: 'pointer',
@@ -603,6 +807,19 @@ const getFallbackShops = (baseLat, baseLng) => {
               onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(59,130,246,0.2)'; }}
               onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(59,130,246,0.1)'; }}
             >📍 Detect My Location</button>
+
+            <button
+              onClick={() => setNearestTenOnly(v => !v)}
+              title="Show only the 10 closest agri shops"
+              style={{
+                background: nearestTenOnly ? 'rgba(74,222,128,0.15)' : 'none',
+                border: nearestTenOnly ? '1px solid rgba(74,222,128,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                color: nearestTenOnly ? '#4ade80' : '#888',
+                fontSize: '12px', fontWeight: 500, padding: '6px 14px', cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >🎯 Nearest 10 Shops</button>
 
             <button onClick={() => fetchNearbyShops(false)} style={{
               background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
@@ -627,7 +844,7 @@ const getFallbackShops = (baseLat, baseLng) => {
               <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <GoogleMap
                   mapContainerStyle={mapContainerStyle}
-                  center={userLocation}
+                  center={equipTrack ? ((vendorShopCoords && vendorShopCoords[equipTrack.shopId]) || SHOP_LOCATIONS[equipTrack.shopId] || userLocation) : userLocation}
                   zoom={12}
                   onLoad={onMapLoad}
                   options={{
@@ -653,15 +870,24 @@ const getFallbackShops = (baseLat, baseLng) => {
                     zoomControl: true,
                   }}
                 >
-                  {!directions && <Marker position={userLocation} icon={{ url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' }} />}
-                  {!directions && !shopLoading && shops.map((shop, i) => shop.location && (
+                  {!equipTrack && !directions && <Marker position={userLocation} icon={{ url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' }} />}
+                  {!equipTrack && !directions && !shopLoading && displayedShops.map((shop, i) => shop.location && (
                     <Marker key={i} position={{ lat: shop.location.lat, lng: shop.location.lng }} onClick={() => handleShopSelect(shop)} />
                   ))}
                   {directions && (
                     <DirectionsRenderer directions={directions} options={{
                       polylineOptions: { strokeColor: '#4285F4', strokeWeight: 5, strokeOpacity: 0.9 },
-                      suppressMarkers: false,
+                      suppressMarkers: equipTrack ? true : false,
                     }} />
+                  )}
+                  {equipTrack && (
+                    <>
+                      <Marker position={(vendorShopCoords && vendorShopCoords[equipTrack.shopId]) || SHOP_LOCATIONS[equipTrack.shopId] || userLocation} label={{ text: '🏬', fontSize: '20px' }} />
+                      <Marker position={equipTrack.destination || FARMER_FIELD_LOCATION} label={{ text: '🌾', fontSize: '20px' }} />
+                      {equipDriverPos && (
+                        <Marker position={equipDriverPos} icon={{ url: 'http://maps.google.com/mapfiles/ms/icons/orange-dot.png' }} />
+                      )}
+                    </>
                   )}
                   {selectedShop && !directions && (
                     <InfoWindow position={{ lat: selectedShop.location.lat, lng: selectedShop.location.lng }} onCloseClick={handleCloseInfoWindow}>
@@ -673,6 +899,37 @@ const getFallbackShops = (baseLat, baseLng) => {
                     </InfoWindow>
                   )}
                 </GoogleMap>
+
+                {/* Equipment tracking overlay — bottom-left compact card */}
+                {equipTrack && routeInfo && (
+                  <div style={{ position: 'absolute', bottom: '40px', left: '12px', zIndex: 10, width: '240px' }}>
+                    <div style={{
+                      backgroundColor: 'rgba(17,17,19,0.95)', backdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px',
+                      padding: '14px', boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: equipArrived ? '#34d399' : '#f97316', animation: 'pulse 2s infinite' }} />
+                        <span style={{ fontSize: '9px', fontWeight: 700, color: equipArrived ? '#34d399' : '#fb923c', letterSpacing: '0.6px' }}>
+                          {equipArrived ? 'ARRIVED · SMS SENT' : 'LIVE (SIMULATED)'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#fff', marginBottom: '8px' }}>{equipTrack.label}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '11px' }}>📏</span>
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#ccc' }}>{routeInfo.distance}</span>
+                        </div>
+                        {!equipArrived && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '11px' }}>⏱️</span>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#ccc' }}>ETA {routeInfo.duration}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Route info overlay — bottom-left compact card */}
                 {routeInfo && selectedShop && (
@@ -729,8 +986,8 @@ const getFallbackShops = (baseLat, baseLng) => {
                   <div className="shimmer" style={{ height: '28px', width: '100%', borderRadius: '6px', marginTop: '4px' }} />
                 </div>
               ))
-            ) : shops.length > 0 ? (
-              shops.map((shop, i) => (
+            ) : displayedShops.length > 0 ? (
+              displayedShops.map((shop, i) => (
                 <div
                   key={i}
                   onClick={() => handleShopSelect(shop)}
@@ -740,8 +997,8 @@ const getFallbackShops = (baseLat, baseLng) => {
                     borderRadius: '14px', padding: '16px', cursor: 'pointer',
                     transition: 'all 0.2s ease',
                   }}
-                  onMouseEnter={e => { if (selectedShop?.name !== shop.name) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)'; }}}
-                  onMouseLeave={e => { if (selectedShop?.name !== shop.name) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)'; }}}
+                  onMouseEnter={e => { if (selectedShop?.name !== shop.name) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)'; } }}
+                  onMouseLeave={e => { if (selectedShop?.name !== shop.name) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)'; } }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0', margin: 0 }}>{shop.name}</h4>

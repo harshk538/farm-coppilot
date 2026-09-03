@@ -26,3 +26,24 @@ build/
 vendor/server/data/Pest_Dataset/
 
 server/data/Pest_Dataset/
+
+# Claude Code local tool config (not part of the app)
+.claude/
+
+# Local scratch files (can contain things like ngrok auth tokens)
+scratch/
+
+# The app now runs on MongoDB — these were the old flat-file data stores.
+# Keep the real reference datasets (still used by server/scripts/migrate.js)
+# but stop tracking runtime/personal data (users, farms, orders, etc.).
+server/data/*.json
+!server/data/diseaseRecommendations.json
+!server/data/diseaseRiskRules.json
+!server/data/priceData.json
+!server/data/equipmentTypes.json
+!server/data/productCatalog.json
+!server/data/cropNutrientRanges.json
+!server/data/fertilizerDosage.json
+!server/data/soilRegions.json
+!server/data/cropCalendar.json
+!server/data/soilBorneDiseaseRisk.json

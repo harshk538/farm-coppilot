@@ -1,0 +1,178 @@
+{
+  "meta": {
+    "purpose": "Soil-condition-based risk rules for soil-borne diseases (distinct from the weather-based foliar disease rules in diseaseRiskRules.json - this file matches against the farm's own soil test readings: pH, moisture, temperature).",
+    "sources": [
+      "Cornell University Greenhouse Horticulture - Root Rot Diseases factsheet: https://greenhouse.cornell.edu/pests-diseases/disease-factsheets/root-rot-diseases/",
+      "University of Minnesota Extension - Fusarium Wilt: https://extension.umn.edu/disease-management/fusarium-wilt",
+      "UC Davis Soil Health - Soil-borne diseases: https://soilhealth.ucdavis.edu/soil-challenges/soil-borne-diseases",
+      "FAO - Soil-borne pests and diseases: https://www.fao.org/agriculture/crops/thematic-sitemap/theme/spi/soil-biodiversity/soil-organisms/the-function-of-the-soil-community/pests-diseases/en/",
+      "Washington State University Extension - Soil-borne pathogens"
+    ],
+    "confidenceNote": "'sourced' = specific numbers or thresholds are directly stated in the cited university/FAO source. 'general' = the pathogen-crop link is documented, but exact numeric thresholds are this app's reasonable estimate from broader plant pathology knowledge, not a single cited figure - treat these two as lower confidence than 'sourced' rules."
+  },
+  "rules": [
+    {
+      "disease": "Pythium Root Rot / Damping-off",
+      "pathogen": "Pythium spp.",
+      "crops": [
+        "Seedlings (all crops)",
+        "Vegetables",
+        "Rice",
+        "Maize"
+      ],
+      "conditions": {
+        "moistureMin": 75,
+        "tempMin": 10,
+        "tempMax": 26,
+        "note": "cool to moderate temperature, waterlogged / poorly drained soil"
+      },
+      "risk": "High",
+      "icon": "\ud83e\udda0",
+      "reason": "Pythium thrives in cool, wet, poorly drained soil where anaerobic (low-oxygen) pockets form around roots.",
+      "prevention": "Improve drainage, avoid overwatering, raise beds in low-lying fields, avoid sowing into waterlogged soil.",
+      "source": "Cornell University Greenhouse Horticulture, Root Rot Diseases factsheet",
+      "sourceUrl": "https://greenhouse.cornell.edu/pests-diseases/disease-factsheets/root-rot-diseases/",
+      "confidence": "sourced"
+    },
+    {
+      "disease": "Phytophthora Root Rot",
+      "pathogen": "Phytophthora spp.",
+      "crops": [
+        "Tomato",
+        "Potato",
+        "Chilli",
+        "Cotton",
+        "Orchard trees"
+      ],
+      "conditions": {
+        "moistureMin": 78,
+        "tempMin": 18,
+        "tempMax": 30,
+        "note": "wet, poorly drained soil; worse with deep planting"
+      },
+      "risk": "High",
+      "icon": "\ud83e\udda0",
+      "reason": "Phytophthora needs standing water or saturated soil to produce the swimming spores that infect roots; poor drainage is the single biggest risk factor.",
+      "prevention": "Ensure the field drains well after irrigation or rain, avoid deep planting, use raised beds in heavy/clay soil.",
+      "source": "Cornell University Greenhouse Horticulture, Root Rot Diseases factsheet",
+      "sourceUrl": "https://greenhouse.cornell.edu/pests-diseases/disease-factsheets/root-rot-diseases/",
+      "confidence": "sourced"
+    },
+    {
+      "disease": "Rhizoctonia Root Rot",
+      "pathogen": "Rhizoctonia solani",
+      "crops": [
+        "Maize",
+        "Beans",
+        "Cotton",
+        "Seedlings"
+      ],
+      "conditions": {
+        "moistureMin": 40,
+        "moistureMax": 65,
+        "tempMin": 20,
+        "tempMax": 32,
+        "note": "intermediate moisture - neither waterlogged nor dry; warm season"
+      },
+      "risk": "Medium",
+      "icon": "\ud83e\udda0",
+      "reason": "Unlike most root-rot fungi, Rhizoctonia is worst in soil that is moderately moist (not fully saturated) and warm - typically a spring/summer problem.",
+      "prevention": "Avoid both extremes - don't let soil dry out and crust, don't overwater. Rotate with a non-host crop.",
+      "source": "Cornell University Greenhouse Horticulture, Root Rot Diseases factsheet; UC Davis Soil Health",
+      "sourceUrl": "https://greenhouse.cornell.edu/pests-diseases/disease-factsheets/root-rot-diseases/",
+      "confidence": "sourced"
+    },
+    {
+      "disease": "Fusarium Wilt",
+      "pathogen": "Fusarium oxysporum",
+      "crops": [
+        "Tomato",
+        "Chilli",
+        "Brinjal (Eggplant)",
+        "Cotton",
+        "Banana"
+      ],
+      "conditions": {
+        "phMax": 6.5,
+        "tempMin": 24,
+        "tempMax": 32,
+        "note": "warm soil (optimal near 28C) and acidic pH"
+      },
+      "risk": "High",
+      "icon": "\ud83e\udd40",
+      "reason": "Fusarium wilt gets worse in warm soil (its optimum is around 28C / 82F) and in acidic conditions; disease severity rises as temperature climbs.",
+      "prevention": "Raising soil pH toward 7 with liming reduces disease severity. Rotate away from susceptible crops, use resistant varieties where available.",
+      "source": "University of Minnesota Extension, Fusarium Wilt; Washington State University Extension",
+      "sourceUrl": "https://extension.umn.edu/disease-management/fusarium-wilt",
+      "confidence": "sourced"
+    },
+    {
+      "disease": "Bacterial Wilt",
+      "pathogen": "Ralstonia solanacearum",
+      "crops": [
+        "Tomato",
+        "Potato",
+        "Chilli",
+        "Brinjal (Eggplant)",
+        "Ginger"
+      ],
+      "conditions": {
+        "moistureMin": 65,
+        "tempMin": 24,
+        "note": "warm, consistently moist soil"
+      },
+      "risk": "Medium",
+      "icon": "\ud83e\udd40",
+      "reason": "Bacterial wilt spreads through soil moisture and warm conditions; it is a well-documented risk for solanaceous crops (tomato, potato, chilli, brinjal) in warm, wet fields.",
+      "prevention": "Improve drainage, avoid working in fields when soil is very wet (spreads the bacteria), rotate with non-host crops, use certified disease-free seed/seedlings.",
+      "source": "UC Davis Soil Health - Soil Challenges (soil-borne diseases overview)",
+      "sourceUrl": "https://soilhealth.ucdavis.edu/soil-challenges/soil-borne-diseases",
+      "confidence": "general"
+    },
+    {
+      "disease": "Black Root Rot",
+      "pathogen": "Thielaviopsis basicola",
+      "crops": [
+        "Cotton",
+        "Beans",
+        "Vegetables",
+        "Ornamentals"
+      ],
+      "conditions": {
+        "phMin": 6.5,
+        "moistureMin": 70,
+        "note": "near-neutral to mildly alkaline pH with poor drainage; largely absent in strongly acidic soil"
+      },
+      "risk": "Medium",
+      "icon": "\ud83e\udda0",
+      "reason": "This disease is specifically pH-linked: it is not a problem when soil is kept acidic (pH 4.5-5.0), but higher pH (6.5-7.0) together with poor drainage encourages it.",
+      "prevention": "Where this disease has been a problem before, avoid over-liming the soil and improve drainage.",
+      "source": "Cornell University Greenhouse Horticulture, Root Rot Diseases factsheet",
+      "sourceUrl": "https://greenhouse.cornell.edu/pests-diseases/disease-factsheets/root-rot-diseases/",
+      "confidence": "sourced"
+    },
+    {
+      "disease": "Root-Knot Nematode",
+      "pathogen": "Meloidogyne spp.",
+      "crops": [
+        "Tomato",
+        "Brinjal (Eggplant)",
+        "Okra",
+        "Carrot",
+        "Banana"
+      ],
+      "conditions": {
+        "tempMin": 25,
+        "moistureMax": 55,
+        "note": "warm, light/sandy, well-drained soil"
+      },
+      "risk": "Medium",
+      "icon": "\ud83e\udeb1",
+      "reason": "Root-knot nematodes are most active and damaging in warm, sandy, well-aerated soil - the opposite conditions from the fungal root rots above.",
+      "prevention": "Rotate with non-host crops (e.g. marigold as a trap crop), add organic matter, avoid continuous mono-cropping of susceptible vegetables.",
+      "source": "General plant nematology consensus (university extension services, e.g. NC State, University of Florida IFAS)",
+      "sourceUrl": "https://www.fao.org/agriculture/crops/thematic-sitemap/theme/spi/soil-biodiversity/soil-organisms/the-function-of-the-soil-community/pests-diseases/en/",
+      "confidence": "general"
+    }
+  ]
+}

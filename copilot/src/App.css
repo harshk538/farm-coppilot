@@ -3,8 +3,13 @@ main > * {
   animation: fadeUp 0.5s ease-out both;
 }
 
-/* Navbar Responsive Rules */
-@media (max-width: 768px) {
+/* Navbar Responsive Rules
+   Breakpoint is 900px, not the more common 768px: at 5 nav links + logo +
+   auth/account controls, the desktop row's own min-content width is ~840-880px,
+   so anything narrower than 900px (small laptop windows, tablets in portrait,
+   split-screen) overflowed the 769px cutoff before it ever got flex/grid room
+   to breathe. Content-driven, measured against the actual nav items below. */
+@media (max-width: 900px) {
   .nav-desktop-only {
     display: none !important;
   }
@@ -16,12 +21,9 @@ main > * {
     justify-content: space-between !important;
     padding: 0 16px !important;
   }
-  .home-desktop-only {
-    display: none !important;
-  }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 901px) {
   .nav-desktop-only {
     display: flex !important;
   }
@@ -34,7 +36,35 @@ main > * {
     gap: 24px !important;
     padding: 0 32px !important;
   }
-  .home-desktop-only {
-    display: block !important;
+}
+
+/* Mobile drawer entrance — the one authored motion for the navbar */
+@keyframes navDrawerIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nav-drawer-enter {
+  animation: navDrawerIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Keyboard focus — themed ring instead of the default blue outline */
+.app-navbar a:focus-visible,
+.app-navbar button:focus-visible {
+  outline: 2px solid rgba(139, 92, 246, 0.6);
+  outline-offset: 2px;
+}
+
+/* Home hero — asymmetric split on desktop, stacks on small screens */
+.home-hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .home-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
   }
 }

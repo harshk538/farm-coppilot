@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "source": "NAAS Policy Paper 42 (state -> agroclimatic zone / soil type mapping) plus NBSS&LUP / NCERT standard India soil-type classification",
+    "note": "stateZones maps a state name to its agroclimatic zone and dominant soil type(s), used to match a farm's saved location text. soilTypes gives general characteristics of each broad Indian soil class."
+  },
+  "stateZones": {
+    "Jammu & Kashmir, Himachal Pradesh": {
+      "zone": "Western Himalayas",
+      "soilTypes": "Alluvial, Brown-hill"
+    },
+    "Uttarakhand": {
+      "zone": "Western Himalayas",
+      "soilTypes": "Alluvial, Brown-hill"
+    },
+    "Assam, West Bengal, NE states": {
+      "zone": "Eastern Himalaya",
+      "soilTypes": "Alluvial, Brown hill, Red, Tarai"
+    },
+    "West Bengal": {
+      "zone": "Lower Gangetic Plain",
+      "soilTypes": "Alluvial, Red Lateritic"
+    },
+    "Eastern Uttar Pradesh": {
+      "zone": "Middle Gangetic Plain",
+      "soilTypes": "Alluvial, Red & Black"
+    },
+    "Bihar": {
+      "zone": "Middle Gangetic Plain",
+      "soilTypes": "Alluvial, Red & Black"
+    },
+    "Western Uttar Pradesh": {
+      "zone": "Upper Gangetic Plain",
+      "soilTypes": "Alluvial"
+    },
+    "Punjab": {
+      "zone": "Trans Gangetic Plain",
+      "soilTypes": "Alluvial"
+    },
+    "Haryana": {
+      "zone": "Trans Gangetic Plain",
+      "soilTypes": "Alluvial"
+    },
+    "Chhattisgarh": {
+      "zone": "Eastern Plateau & Hills",
+      "soilTypes": "Red & yellow, Red & lateritic, Mixed red & black"
+    },
+    "Jharkhand": {
+      "zone": "Eastern Plateau & Hills",
+      "soilTypes": "Red & yellow, Red & lateritic, Mixed red & black"
+    },
+    "Eastern Maharashtra & Odisha": {
+      "zone": "Eastern Plateau & Hills",
+      "soilTypes": "Red & yellow, Red & lateritic, Mixed red & black"
+    },
+    "Madhya Pradesh": {
+      "zone": "Central Plateau & Hills",
+      "soilTypes": "Alluvial, Shallow black"
+    },
+    "Uttar Pradesh (Bundelkhand)": {
+      "zone": "Central Plateau & Hills",
+      "soilTypes": "Alluvial, Shallow black"
+    },
+    "Maharashtra": {
+      "zone": "Central Plateau & Hills",
+      "soilTypes": "Alluvial, Shallow black"
+    },
+    "Maharashtra & Southern Madhya Pradesh": {
+      "zone": "Western Plateau",
+      "soilTypes": "Black, Reddish brown"
+    },
+    "Andhra Pradesh": {
+      "zone": "Southern Plateau",
+      "soilTypes": "Red & Lateritic, Black, Alluvial"
+    },
+    "Karnataka": {
+      "zone": "Southern Plateau",
+      "soilTypes": "Red & Lateritic, Black, Alluvial"
+    },
+    "Tamil Nadu": {
+      "zone": "Southern Plateau",
+      "soilTypes": "Red & Lateritic, Black, Alluvial"
+    },
+    "Odisha": {
+      "zone": "East Coast Plains & Hills",
+      "soilTypes": "Red, Black, Coastal Alluvium"
+    },
+    "Kerala": {
+      "zone": "West Coast Plains & Ghats",
+      "soilTypes": "Red, Lateritic, Coastal Alluvium"
+    },
+    "Maharashtra (Konkan)": {
+      "zone": "West Coast Plains & Ghats",
+      "soilTypes": "Red, Lateritic, Coastal Alluvium"
+    },
+    "Northern Gujarat": {
+      "zone": "Gujarat Plains & Hills",
+      "soilTypes": "Red, Black"
+    },
+    "Southern Gujarat": {
+      "zone": "Gujarat Plains & Hills",
+      "soilTypes": "Red, Black"
+    },
+    "Rajasthan": {
+      "zone": "Western Dry Region",
+      "soilTypes": "Reddish brown, Desert"
+    },
+    "Andaman & Nicobar": {
+      "zone": "Island Region",
+      "soilTypes": "Coastal Alluvium (saline)"
+    }
+  },
+  "soilTypes": [
+    {
+      "type": "Alluvial soil",
+      "coverage": "~40% of India's land - Indo-Gangetic plains (Punjab, Haryana, UP, Bihar, West Bengal, parts of Assam), river deltas",
+      "characteristics": "Rich in potash, phosphoric acid and lime; low in nitrogen and organic matter; fine-grained, very fertile; renewed by river silt deposits",
+      "typicalPh": "6.5 to 7.5 (near neutral)",
+      "goodFor": [
+        "Rice",
+        "Wheat",
+        "Sugarcane",
+        "Maize",
+        "Pulses",
+        "Oilseeds"
+      ],
+      "source": "NBSS&LUP soil classification; NCERT Geography"
+    },
+    {
+      "type": "Black soil (Regur / cotton soil)",
+      "coverage": "Deccan trap region - Maharashtra, Madhya Pradesh, Gujarat, Andhra Pradesh, Karnataka, Tamil Nadu",
+      "characteristics": "High clay content, retains moisture very well, rich in calcium carbonate, magnesium, potash; low in nitrogen, phosphorus and organic matter; cracks deeply when dry",
+      "typicalPh": "7.5 to 8.5 (neutral to mildly alkaline)",
+      "goodFor": [
+        "Cotton",
+        "Soybean",
+        "Sugarcane",
+        "Sorghum",
+        "Sunflower"
+      ],
+      "source": "NBSS&LUP soil classification; NCERT Geography"
+    },
+    {
+      "type": "Red and yellow soil",
+      "coverage": "Eastern and southern Deccan plateau - Odisha, Chhattisgarh, parts of Tamil Nadu, Karnataka, Jharkhand",
+      "characteristics": "Red color from iron oxide; sandy to loamy texture; low in nitrogen, phosphorus and humus; needs fertilizer input for good yield",
+      "typicalPh": "5.5 to 6.5 (slightly acidic)",
+      "goodFor": [
+        "Groundnut",
+        "Millets",
+        "Pulses",
+        "Potato"
+      ],
+      "source": "NBSS&LUP soil classification; NCERT Geography"
+    },
+    {
+      "type": "Laterite soil",
+      "coverage": "High rainfall areas - Kerala, Karnataka (coastal), parts of Odisha, West Bengal, Northeast India",
+      "characteristics": "Formed by heavy leaching in high rainfall; low in nitrogen, phosphate, calcium, magnesium; high in iron and aluminium oxide",
+      "typicalPh": "5.0 to 6.0 (acidic)",
+      "goodFor": [
+        "Tea",
+        "Coffee",
+        "Cashew",
+        "Rubber",
+        "Coconut"
+      ],
+      "source": "NBSS&LUP soil classification; NCERT Geography"
+    },
+    {
+      "type": "Arid / desert soil",
+      "coverage": "Rajasthan, parts of Gujarat, Haryana",
+      "characteristics": "Sandy, low organic matter, low water retention, often saline; nutrient-poor without irrigation",
+      "typicalPh": "7.5 to 9.0 (alkaline)",
+      "goodFor": [
+        "Pearl millet (bajra)",
+        "Moth bean",
+        "Guar",
+        "date palm (with irrigation)"
+      ],
+      "source": "NBSS&LUP soil classification; NCERT Geography"
+    },
+    {
+      "type": "Saline and alkaline soil",
+      "coverage": "Patches in Punjab, Haryana, UP, Gujarat, Maharashtra - mostly poorly drained irrigated tracts",
+      "characteristics": "High salt content, poor drainage, low fertility, difficult for most crops without reclamation (gypsum treatment)",
+      "typicalPh": "8.5 and above",
+      "goodFor": [
+        "Salt-tolerant paddy varieties",
+        "Dhaincha (green manure)"
+      ],
+      "source": "NBSS&LUP soil classification"
+    }
+  ]
+}

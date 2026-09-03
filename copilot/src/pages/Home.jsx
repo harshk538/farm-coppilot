@@ -119,6 +119,13 @@ const ALL_STYLES = `
     border-color: rgba(139,92,246,0.35) !important;
     box-shadow: 0 0 40px rgba(139,92,246,0.1);
   }
+
+  /* ── 3D hero visual — idle float ── */
+  @keyframes heroVisualFloat {
+    0%, 100% { transform: translateY(0px); }
+    50%      { transform: translateY(-14px); }
+  }
+  .hero-visual-float { animation: heroVisualFloat 5.5s ease-in-out infinite; }
 `;
 
 /* ─────────────────────────────────────────
@@ -132,15 +139,185 @@ const glassPanel = {
   position: 'relative',
 };
 
+/* ─────────────────────────────────────────
+   3D TILT — mouse-tracked perspective rotation.
+   Applied via refs + rAF so it never re-renders React state.
+───────────────────────────────────────────── */
+function useTilt(maxDeg = 8, scale = 1.02) {
+  const ref = useRef(null);
+  const frame = useRef(null);
+
+  const onMouseMove = useCallback((e) => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    const rotateY = (px - 0.5) * maxDeg * 2;
+    const rotateX = (0.5 - py) * maxDeg * 2;
+    if (frame.current) cancelAnimationFrame(frame.current);
+    frame.current = requestAnimationFrame(() => {
+      if (ref.current) {
+        ref.current.style.transform =
+          `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${scale}, ${scale}, ${scale})`;
+      }
+    });
+  }, [maxDeg, scale]);
+
+  const onMouseLeave = useCallback(() => {
+    if (frame.current) cancelAnimationFrame(frame.current);
+    const el = ref.current;
+    if (el) el.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)';
+  }, []);
+
+  return { ref, onMouseMove, onMouseLeave };
+}
+
+/* Generic 3D-tilt card wrapper — desktop hover tilts on the cursor,
+   settles flat on mouse-leave and on touch devices (no mousemove fires). */
+function TiltCard({ children, maxDeg = 8, scale = 1.02, style }) {
+  const { ref, onMouseMove, onMouseLeave } = useTilt(maxDeg, scale);
+  return (
+    <div
+      ref={ref}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      style={{
+        transformStyle: 'preserve-3d',
+        willChange: 'transform',
+        transition: 'transform 0.45s cubic-bezier(0.22,1,0.36,1), box-shadow 0.3s ease, border-color 0.3s ease',
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────
+   ACCENT SYSTEM — one accent per feature, all pulled from hues
+   already used elsewhere in this app (violet = default brand,
+   indigo = Treatment Finder's own product-card color, emerald =
+   the app's existing "success / online / low-risk" color). Every
+   rgba string below shares these three hues — nothing new introduced.
+───────────────────────────────────────────── */
+const FEATURE_ACCENTS = {
+  advisory: { c: '#8b5cf6', text: '#a78bfa', rgb: '139,92,246' },
+  treatment: { c: '#6366f1', text: '#a5b4fc', rgb: '99,102,241' },
+  weather: { c: '#10b981', text: '#6ee7b7', rgb: '16,185,129' },
+};
+const AMBER_ACCENT = { c: '#f59e0b', text: '#fbbf24', rgb: '245,158,11' };
+function accentFor(key) {
+  return key === 'amber' ? AMBER_ACCENT : FEATURE_ACCENTS[key];
+}
+
+/* The three feature animations the hero visual relays through, in order. */
+const HERO_PALETTES = [
+  { key: 'advisory', label: 'AI Crop Advisory', Comp: AdvisoryAnimation },
+  { key: 'treatment', label: 'Treatment Finder', Comp: TreatmentAnimation },
+  { key: 'weather', label: 'Weather & Disease Risk', Comp: WeatherAnimation },
+];
+
+/* ═══════════════════════════════════════════
+   HERO VISUAL — a real 3-card stack, not a swapped single slot.
+   On hover the front card (Advisory) plays. When it finishes it settles
+   down-and-back into the "just played" slot, the card that was waiting
+   just above slides down to become the new front and starts playing,
+   and the third card takes the "up next" slot, frozen mid-idle so you
+   can see it's paused and waiting its turn. Loops while hovered.
+═══════════════════════════════════════════ */
+function HeroVisual() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [hovering, setHovering] = useState(false);
+  const { ref, onMouseMove, onMouseLeave } = useTilt(7, 1.015);
+
+  const handleEnter = () => { setActiveIndex(0); setHovering(true); };
+  const handleLeave = () => { setHovering(false); onMouseLeave(); };
+  const advance = useCallback(() => {
+    setActiveIndex((i) => (i + 1) % HERO_PALETTES.length);
+  }, []);
+
+  const activeAccent = FEATURE_ACCENTS[HERO_PALETTES[activeIndex].key];
+
+  return (
+    <div
+      className="hero-visual-float"
+      style={{ position: 'relative', width: '100%', maxWidth: '380px', margin: '0 auto', perspective: '1400px' }}
+    >
+      {/* Ambient glow — tints toward whichever feature is currently playing */}
+      <div aria-hidden="true" style={{
+        position: 'absolute', inset: '-30px', borderRadius: '32px', zIndex: -1,
+        background: `radial-gradient(ellipse at 50% 40%, rgba(${activeAccent.rgb},0.16) 0%, transparent 70%)`,
+        transition: 'background 0.6s ease', pointerEvents: 'none', filter: 'blur(4px)',
+      }} />
+      <div
+        ref={ref}
+        onMouseEnter={handleEnter}
+        onMouseMove={onMouseMove}
+        onMouseLeave={handleLeave}
+        style={{
+          position: 'relative', height: 'clamp(240px, 58vw, 320px)',
+          transformStyle: 'preserve-3d',
+          willChange: 'transform',
+          transition: 'transform 0.45s cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
+        {HERO_PALETTES.map((p, i) => {
+          // rank 0 = front & playing · rank 1 = up next, peeking above, frozen ·
+          // rank 2 = just finished, settled down behind, frozen
+          const rank = (i - activeIndex + HERO_PALETTES.length) % HERO_PALETTES.length;
+          const isFront = rank === 0;
+          const translateY = rank === 0 ? 0 : rank === 1 ? -20 : 20;
+          const scale = rank === 0 ? 1 : 0.94;
+          const accent = FEATURE_ACCENTS[p.key];
+          const Comp = p.Comp;
+          return (
+            <div key={p.key} style={{
+              ...glassPanel,
+              position: 'absolute', inset: 0,
+              backgroundColor: 'rgba(14,14,17,0.92)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              borderColor: isFront ? `rgba(${accent.rgb},0.35)` : 'rgba(255,255,255,0.08)',
+              zIndex: 3 - rank,
+              opacity: isFront ? 1 : rank === 1 ? 0.6 : 0.32,
+              transform: `translateY(${translateY}px) scale(${scale})`,
+              pointerEvents: isFront ? 'auto' : 'none',
+              transition: 'transform 0.55s cubic-bezier(0.22,1,0.36,1), opacity 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease',
+              boxShadow: isFront
+                ? `0 30px 70px rgba(0,0,0,0.55), 0 0 46px rgba(${accent.rgb},0.14), 0 0 0 1px rgba(255,255,255,0.04) inset`
+                : '0 14px 34px rgba(0,0,0,0.4)',
+            }}>
+              <Comp isPlaying={isFront && hovering} onComplete={isFront ? advance : undefined} />
+            </div>
+          );
+        })}
+
+        {!hovering && (
+          <div style={{
+            position: 'absolute', top: '12px', right: '14px', zIndex: 4,
+            fontSize: '9px', color: '#444', fontWeight: 500,
+            backgroundColor: 'rgba(255,255,255,0.04)', padding: '3px 8px',
+            borderRadius: '100px', border: '1px solid rgba(255,255,255,0.08)',
+            pointerEvents: 'none',
+          }}>▶ Hover to play</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════
    ANIMATION 1 — AI Crop Advisory
 ═══════════════════════════════════════════ */
-function AdvisoryAnimation({ isPlaying }) {
+function AdvisoryAnimation({ isPlaying, onComplete }) {
   const FULL_TEXT = 'Powdery Mildew detected — Severity: High';
   const [typed, setTyped] = useState('');
   const [scanDone, setScanDone] = useState(false);
   const [confVisible, setConfVisible] = useState(false);
   const timerRef = useRef(null);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -150,7 +327,7 @@ function AdvisoryAnimation({ isPlaying }) {
       setConfVisible(false);
       return;
     }
-    // scan bar: 1.2s, then type, then confidence bar
+    // scan bar: 1.2s, then type, then confidence bar, then signal completion
     timerRef.current = setTimeout(() => {
       setScanDone(true);
       let i = 0;
@@ -158,7 +335,10 @@ function AdvisoryAnimation({ isPlaying }) {
         setTyped(FULL_TEXT.slice(0, i + 1));
         i++;
         if (i < FULL_TEXT.length) timerRef.current = setTimeout(typeNext, 38);
-        else timerRef.current = setTimeout(() => setConfVisible(true), 200);
+        else timerRef.current = setTimeout(() => {
+          setConfVisible(true);
+          timerRef.current = setTimeout(() => onCompleteRef.current?.(), 1000);
+        }, 200);
       };
       typeNext();
     }, 1300);
@@ -238,19 +418,23 @@ function AdvisoryAnimation({ isPlaying }) {
 /* ═══════════════════════════════════════════
    ANIMATION 2 — Treatment Finder
 ═══════════════════════════════════════════ */
-function TreatmentAnimation({ isPlaying }) {
+function TreatmentAnimation({ isPlaying, onComplete }) {
   const [step, setStep] = useState(0); // 0=idle 1=dropdown 2=cards 3=map
-  const timerRef = useRef(null);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => {
     if (!isPlaying) {
-      clearTimeout(timerRef.current);
       setStep(0);
       return;
     }
     setStep(1);
-    timerRef.current = setTimeout(() => setStep(2), 600);
-    timerRef.current = setTimeout(() => setStep(3), 1600);
+    const timers = [
+      setTimeout(() => setStep(2), 600),
+      setTimeout(() => setStep(3), 1600),
+      setTimeout(() => onCompleteRef.current?.(), 2200),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, [isPlaying]);
 
   const products = [
@@ -326,20 +510,24 @@ function TreatmentAnimation({ isPlaying }) {
 /* ═══════════════════════════════════════════
    ANIMATION 3 — Weather & Disease Risk
 ═══════════════════════════════════════════ */
-function WeatherAnimation({ isPlaying }) {
+function WeatherAnimation({ isPlaying, onComplete }) {
   const [meterFill, setMeterFill] = useState(false);
   const [alertsVisible, setAlertsVisible] = useState(false);
-  const timerRef = useRef(null);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => {
     if (!isPlaying) {
-      clearTimeout(timerRef.current);
       setMeterFill(false);
       setAlertsVisible(false);
       return;
     }
-    timerRef.current = setTimeout(() => setMeterFill(true), 300);
-    timerRef.current = setTimeout(() => setAlertsVisible(true), 1100);
+    const timers = [
+      setTimeout(() => setMeterFill(true), 300),
+      setTimeout(() => setAlertsVisible(true), 1100),
+      setTimeout(() => onCompleteRef.current?.(), 2100),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, [isPlaying]);
 
   const alerts = [
@@ -607,34 +795,50 @@ function ProductsAnimation({ isPlaying }) {
 /* ═══════════════════════════════════════════
    FEATURE SHOWCASE ROW
 ═══════════════════════════════════════════ */
-function ShowcaseRow({ animLeft, title, tag, desc, path, icon, AnimComponent, navigate }) {
+function ShowcaseRow({ animLeft, title, tag, desc, path, icon, AnimComponent, navigate, accent }) {
   const [hovered, setHovered] = useState(false);
+  const { ref: tiltRef, onMouseMove: tiltMove, onMouseLeave: tiltLeave } = useTilt(6, 1.015);
+  const rgb = accent.rgb;
 
   const animPanel = (
-    <div
-      className="sc-anim-panel"
-      style={{
-        ...glassPanel,
-        cursor: 'default',
-        minHeight: '340px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Hover hint */}
-      {!hovered && (
-        <div style={{
-          position: 'absolute', top: '12px', right: '12px',
-          fontSize: '9px', color: '#444', fontWeight: 500,
-          backgroundColor: 'rgba(255,255,255,0.03)', padding: '3px 8px',
-          borderRadius: '100px', border: '1px solid rgba(255,255,255,0.06)',
-          pointerEvents: 'none', zIndex: 2,
-        }}>▶ Hover to play</div>
-      )}
-      <AnimComponent isPlaying={hovered} />
+    <div style={{ position: 'relative' }}>
+      {/* Ambient accent glow behind the panel */}
+      <div aria-hidden="true" style={{
+        position: 'absolute', inset: '-24px', zIndex: -1, borderRadius: '32px',
+        background: `radial-gradient(ellipse at 50% 40%, rgba(${rgb},0.14) 0%, transparent 70%)`,
+        filter: 'blur(2px)', pointerEvents: 'none',
+      }} />
+      <div
+        ref={tiltRef}
+        className="sc-anim-panel"
+        style={{
+          ...glassPanel,
+          cursor: 'default',
+          minHeight: '340px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          transformStyle: 'preserve-3d',
+          willChange: 'transform',
+          boxShadow: `0 20px 50px rgba(0,0,0,0.35), 0 0 40px rgba(${rgb},0.06)`,
+          transition: 'transform 0.45s cubic-bezier(0.22,1,0.36,1), border-color 0.3s ease, box-shadow 0.3s ease',
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseMove={tiltMove}
+        onMouseLeave={() => { setHovered(false); tiltLeave(); }}
+      >
+        {/* Hover hint */}
+        {!hovered && (
+          <div style={{
+            position: 'absolute', top: '12px', right: '12px',
+            fontSize: '9px', color: '#444', fontWeight: 500,
+            backgroundColor: 'rgba(255,255,255,0.03)', padding: '3px 8px',
+            borderRadius: '100px', border: '1px solid rgba(255,255,255,0.06)',
+            pointerEvents: 'none', zIndex: 2,
+          }}>▶ Hover to play</div>
+        )}
+        <AnimComponent isPlaying={hovered} />
+      </div>
     </div>
   );
 
@@ -646,15 +850,19 @@ function ShowcaseRow({ animLeft, title, tag, desc, path, icon, AnimComponent, na
       {/* Tag */}
       <span style={{
         display: 'inline-flex', alignSelf: 'flex-start',
-        fontSize: '10px', fontWeight: 700, color: '#8b5cf6',
-        backgroundColor: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.22)',
+        fontSize: '10px', fontWeight: 700, color: accent.text,
+        backgroundColor: `rgba(${rgb},0.1)`, border: `1px solid rgba(${rgb},0.24)`,
         padding: '3px 10px', borderRadius: '100px', letterSpacing: '0.8px',
         textTransform: 'uppercase', marginBottom: '20px',
       }}>{tag}</span>
 
       {/* Icon + Title */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-        <span style={{ fontSize: '36px' }}>{icon}</span>
+        <span style={{
+          fontSize: '30px', width: '52px', height: '52px', borderRadius: '14px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          backgroundColor: `rgba(${rgb},0.1)`, border: `1px solid rgba(${rgb},0.2)`,
+        }}>{icon}</span>
         <h3 style={{
           fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 800,
           letterSpacing: '-0.8px', color: '#fff', margin: 0, lineHeight: 1.1,
@@ -673,19 +881,19 @@ function ShowcaseRow({ animLeft, title, tag, desc, path, icon, AnimComponent, na
         style={{
           display: 'inline-flex', alignSelf: 'flex-start',
           alignItems: 'center', gap: '8px',
-          backgroundColor: 'transparent', color: '#a78bfa',
-          border: '1px solid rgba(139,92,246,0.35)', borderRadius: '10px',
+          backgroundColor: 'transparent', color: accent.text,
+          border: `1px solid rgba(${rgb},0.35)`, borderRadius: '10px',
           padding: '10px 22px', fontSize: '13px', fontWeight: 600,
           cursor: 'pointer', transition: 'all 0.25s cubic-bezier(0.22,1,0.36,1)',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.backgroundColor = 'rgba(139,92,246,0.12)';
-          e.currentTarget.style.borderColor = 'rgba(139,92,246,0.6)';
+          e.currentTarget.style.backgroundColor = `rgba(${rgb},0.12)`;
+          e.currentTarget.style.borderColor = `rgba(${rgb},0.6)`;
           e.currentTarget.style.transform = 'translateY(-1px)';
         }}
         onMouseLeave={e => {
           e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.borderColor = 'rgba(139,92,246,0.35)';
+          e.currentTarget.style.borderColor = `rgba(${rgb},0.35)`;
           e.currentTarget.style.transform = 'none';
         }}
       >
@@ -697,10 +905,10 @@ function ShowcaseRow({ animLeft, title, tag, desc, path, icon, AnimComponent, na
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: '48px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+      gap: 'clamp(32px, 6vw, 48px)',
       alignItems: 'center',
-      padding: '64px 0',
+      padding: 'clamp(40px, 8vw, 64px) 0',
       borderBottom: '1px solid rgba(255,255,255,0.05)',
     }}>
       {animLeft ? animPanel : textPanel}
@@ -723,33 +931,33 @@ export default function Home() {
   }, []);
 
   const stats = [
-    { icon: '⚡', value: 'Gemini AI', label: "Google's most advanced model for crop diagnosis" },
-    { icon: '🗺️', value: 'Live Maps', label: 'Find the nearest agricultural store in seconds' },
-    { icon: '🛡️', value: 'Verified DB', label: 'Trusted database of authenticated farm products' },
-    { icon: '🌐', value: '24/7', label: 'Always-on advisory — no waiting, instant answers' },
+    { icon: '⚡', value: 'Gemini AI', label: "Google's most advanced model for crop diagnosis", accentKey: 'advisory' },
+    { icon: '🗺️', value: 'Live Maps', label: 'Find the nearest agricultural store in seconds', accentKey: 'treatment' },
+    { icon: '🛡️', value: 'Verified DB', label: 'Trusted database of authenticated farm products', accentKey: 'weather' },
+    { icon: '🌐', value: '24/7', label: 'Always-on advisory — no waiting, instant answers', accentKey: 'amber' },
   ];
 
   const howItWorks = [
-    { step: '01', title: 'Describe or Photograph', desc: 'Type a description of your crop issue or simply take a photo. The AI handles the rest.' },
-    { step: '02', title: 'AI Diagnoses Instantly', desc: 'Google Gemini analyzes the input, identifies the disease or deficiency, and determines severity.' },
-    { step: '03', title: 'Get Your Action Plan', desc: 'Receive specific product recommendations, dosage, application schedule and nearby shop locations.' },
+    { step: '01', title: 'Describe or Photograph', desc: 'Type a description of your crop issue or simply take a photo. The AI handles the rest.', accentKey: 'advisory' },
+    { step: '02', title: 'AI Diagnoses Instantly', desc: 'Google Gemini analyzes the input, identifies the disease or deficiency, and determines severity.', accentKey: 'treatment' },
+    { step: '03', title: 'Get Your Action Plan', desc: 'Receive specific product recommendations, dosage, application schedule and nearby shop locations.', accentKey: 'weather' },
   ];
 
   const showcaseFeatures = [
     {
       icon: '🧠', title: 'AI Crop Advisory', tag: 'Powered by Gemini',
       desc: 'Upload a photo of your crops or describe the problem. Google Gemini AI instantly diagnoses diseases, pests, and nutrient deficiencies with actionable treatment recommendations.',
-      path: '/advisory', Anim: AdvisoryAnimation,
+      path: '/advisory', Anim: AdvisoryAnimation, accentKey: 'advisory',
     },
     {
       icon: '💊', title: 'Treatment Finder', tag: 'With Shop Finder',
       desc: 'Select your crop disease and get precise pesticide and fertilizer recommendations. Includes dosage instructions, application methods, and nearby agricultural shop discovery with maps.',
-      path: '/treatment', Anim: TreatmentAnimation,
+      path: '/treatment', Anim: TreatmentAnimation, accentKey: 'treatment',
     },
     {
       icon: '🌦️', title: 'Weather & Disease Risk', tag: 'Live Weather Data',
       desc: 'Real-time weather analysis to predict disease outbreak risk before it happens. Get proactive alerts for fungal, bacterial, and pest-related threats based on your local conditions.',
-      path: '/weather', Anim: WeatherAnimation,
+      path: '/weather', Anim: WeatherAnimation, accentKey: 'weather',
     },
   ];
 
@@ -759,7 +967,7 @@ export default function Home() {
 
       {/* ── HERO ── */}
       <section style={{
-        textAlign: 'center', padding: '96px 32px 80px',
+        padding: 'clamp(56px, 10vw, 96px) clamp(20px, 5vw, 32px) clamp(56px, 8vw, 80px)',
         width: '100%', position: 'relative', overflow: 'hidden',
       }}>
         {/* Floating gradient orbs */}
@@ -775,8 +983,9 @@ export default function Home() {
           <div key={i} aria-hidden="true" style={{ position: 'absolute', width: i % 2 === 0 ? '4px' : '3px', height: i % 2 === 0 ? '4px' : '3px', borderRadius: '50%', backgroundColor: i % 3 === 0 ? 'rgba(139,92,246,0.6)' : i % 3 === 1 ? 'rgba(168,85,247,0.5)' : 'rgba(255,255,255,0.25)', top: `${15 + i * 12}%`, left: `${8 + i * 15}%`, animation: `particleDrift ${3.5 + i * 0.7}s ease-in-out infinite`, animationDelay: `${i * 0.4}s`, pointerEvents: 'none', zIndex: 0 }} />
         ))}
 
-        {/* Content */}
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: '860px', margin: '0 auto' }}>
+        {/* Content — asymmetric split: text left, floating 3D visual right */}
+        <div className="home-hero-grid" style={{ position: 'relative', zIndex: 1, maxWidth: '1180px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', maxWidth: '620px', margin: '0 auto', width: '100%' }}>
           <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'center', animation: 'badgePop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.1s both' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '100px', border: `1px solid ${aiStatus === 'online' ? 'rgba(52,211,153,0.25)' : 'rgba(255,255,255,0.1)'}`, backgroundColor: aiStatus === 'online' ? 'rgba(52,211,153,0.06)' : 'rgba(255,255,255,0.04)', fontSize: '12px', fontWeight: 500, color: aiStatus === 'online' ? '#6ee7b7' : '#666', letterSpacing: '0.2px', backdropFilter: 'blur(8px)' }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: aiStatus === 'online' ? '#34d399' : '#555', animation: 'pulse 2s infinite' }} />
@@ -784,7 +993,7 @@ export default function Home() {
             </div>
           </div>
 
-          <h1 style={{ fontSize: 'clamp(40px, 6vw, 72px)', fontWeight: 800, letterSpacing: '-2px', lineHeight: 1.05, margin: '0 0 24px', color: '#fff', animation: 'fadeSlideUp 0.75s cubic-bezier(0.22,1,0.36,1) 0.3s both' }}>
+          <h1 style={{ fontSize: 'clamp(34px, 8.5vw, 72px)', fontWeight: 800, letterSpacing: '-2px', lineHeight: 1.05, margin: '0 0 24px', color: '#fff', animation: 'fadeSlideUp 0.75s cubic-bezier(0.22,1,0.36,1) 0.3s both' }}>
             Smart Farming,{' '}
             <span style={{ background: 'linear-gradient(90deg, #a78bfa 0%, #7c3aed 25%, #c084fc 50%, #7c3aed 75%, #a78bfa 100%)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', animation: 'shimmerText 3.5s linear infinite' }}>
               simplified.
@@ -805,26 +1014,36 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        <HeroVisual />
+        </div>
       </section>
 
       {/* ── DIVIDER ── */}
       <div style={{ width: '100%', height: '1px', backgroundColor: 'rgba(255,255,255,0.06)' }} />
 
-      {/* ── STATS BAR ── (hidden on mobile) */}
-      <section className="home-desktop-only" style={{ padding: '32px', maxWidth: '1100px', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-          {stats.map((s) => (
-            <div key={s.value} style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '24px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '20px', marginBottom: '4px' }}>{s.icon}</div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{s.value}</div>
-              <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.4 }}>{s.label}</div>
-            </div>
-          ))}
+      {/* ── STATS BAR ── */}
+      <section style={{ padding: 'clamp(20px, 4vw, 32px)', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+          {stats.map((s) => {
+            const rgb = accentFor(s.accentKey).rgb;
+            return (
+              <TiltCard key={s.value} maxDeg={7} scale={1.03} style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: 'clamp(18px, 4vw, 24px) clamp(14px, 3vw, 20px)', textAlign: 'center' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px', margin: '0 auto 10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px',
+                  backgroundColor: `rgba(${rgb},0.12)`, border: `1px solid rgba(${rgb},0.22)`,
+                }}>{s.icon}</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{s.value}</div>
+                <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.4 }}>{s.label}</div>
+              </TiltCard>
+            );
+          })}
         </div>
       </section>
 
-      {/* ── FEATURE SHOWCASE ── (hidden on mobile) */}
-      <section className="home-desktop-only" style={{ padding: '80px 48px 20px', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* ── FEATURE SHOWCASE ── */}
+      <section style={{ padding: 'clamp(48px, 10vw, 80px) clamp(20px, 5vw, 48px) 20px', maxWidth: '1200px', margin: '0 auto' }}>
         {/* Section header */}
         <div style={{ textAlign: 'center', marginBottom: '16px' }}>
           <p style={{ fontSize: '12px', fontWeight: 600, color: '#8b5cf6', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '12px' }}>
@@ -850,34 +1069,45 @@ export default function Home() {
             icon={f.icon}
             AnimComponent={f.Anim}
             navigate={navigate}
+            accent={accentFor(f.accentKey)}
           />
         ))}
       </section>
 
-      {/* ── DIVIDER ── (hidden on mobile) */}
-      <div className="home-desktop-only" style={{ width: '100%', height: '1px', backgroundColor: 'rgba(255,255,255,0.06)', marginTop: '40px' }} />
+      {/* ── DIVIDER ── */}
+      <div style={{ width: '100%', height: '1px', backgroundColor: 'rgba(255,255,255,0.06)', marginTop: '40px' }} />
 
       {/* ── HOW IT WORKS ── */}
-      <section style={{ padding: '80px 32px', maxWidth: '1100px', margin: '0 auto' }}>
+      <section style={{ padding: 'clamp(48px, 10vw, 80px) clamp(20px, 5vw, 32px)', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '56px' }}>
           <p style={{ fontSize: '12px', fontWeight: 600, color: '#8b5cf6', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '12px' }}>How it works</p>
-          <h2 style={{ fontSize: '36px', fontWeight: 700, letterSpacing: '-0.8px', color: '#fff', margin: 0 }}>Get answers in seconds</h2>
+          <h2 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 700, letterSpacing: '-0.8px', color: '#fff', margin: 0 }}>Get answers in seconds</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
-          {howItWorks.map((step) => (
-            <div key={step.step} style={{ padding: '32px 28px', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#a78bfa', marginBottom: '20px', letterSpacing: '0.5px' }}>{step.step}</div>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#fff', margin: '0 0 10px', letterSpacing: '-0.2px' }}>{step.title}</h3>
-              <p style={{ fontSize: '13.5px', color: '#666', lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
-            </div>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'clamp(16px, 3vw, 24px)' }}>
+          {howItWorks.map((step) => {
+            const rgb = accentFor(step.accentKey).rgb;
+            const text = accentFor(step.accentKey).text;
+            return (
+              <TiltCard key={step.step} maxDeg={6} scale={1.015} style={{ padding: 'clamp(24px, 5vw, 32px) clamp(20px, 4vw, 28px)', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: `rgba(${rgb},0.12)`, border: `1px solid rgba(${rgb},0.22)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: text, marginBottom: '20px', letterSpacing: '0.5px' }}>{step.step}</div>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#fff', margin: '0 0 10px', letterSpacing: '-0.2px' }}>{step.title}</h3>
+                <p style={{ fontSize: '13.5px', color: '#666', lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
+              </TiltCard>
+            );
+          })}
         </div>
       </section>
 
       {/* ── CTA BANNER ── */}
-      <section style={{ padding: '0 32px 96px', maxWidth: '1100px', margin: '0 auto' }}>
-        <div style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(124,58,237,0.08) 100%)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '20px', padding: '56px 48px', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '32px', fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', margin: '0 0 12px' }}>Start protecting your crops today</h2>
+      <section style={{ padding: '0 clamp(20px, 5vw, 32px) 96px', maxWidth: '1100px', margin: '0 auto', position: 'relative' }}>
+        <div aria-hidden="true" style={{
+          position: 'absolute', inset: '-40px', zIndex: -1, pointerEvents: 'none', borderRadius: '32px', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', top: '-30px', left: '10%', width: '280px', height: '280px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)', filter: 'blur(4px)' }} />
+          <div style={{ position: 'absolute', bottom: '-40px', right: '10%', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)', filter: 'blur(4px)' }} />
+        </div>
+        <TiltCard maxDeg={4} scale={1.008} style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.18) 0%, rgba(99,102,241,0.1) 55%, rgba(16,185,129,0.06) 100%)', border: '1px solid rgba(139,92,246,0.22)', borderRadius: '20px', padding: 'clamp(40px, 8vw, 56px) clamp(24px, 6vw, 48px)', textAlign: 'center', boxShadow: '0 30px 60px rgba(0,0,0,0.3), 0 0 60px rgba(139,92,246,0.08)' }}>
+          <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', margin: '0 0 12px' }}>Start protecting your crops today</h2>
           <p style={{ fontSize: '15px', color: '#777', margin: '0 0 32px', maxWidth: '420px', display: 'block', marginLeft: 'auto', marginRight: 'auto' }}>
             Free to use. No account needed. Get your first AI crop diagnosis in under 30 seconds.
           </p>
@@ -889,7 +1119,7 @@ export default function Home() {
           >
             Try AI Advisory Free <span style={{ opacity: 0.7 }}>→</span>
           </button>
-        </div>
+        </TiltCard>
       </section>
 
       {/* ── FOOTER ── */}

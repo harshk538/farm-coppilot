@@ -1,27 +1,38 @@
 import express from 'express';
-import fs from 'fs';
-import path from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { readConfig, writeConfig } from '../utils/mongoStore.js';
 
 const router = express.Router();
 
-// Load data files
-const recPath = path.join(process.cwd(), 'data', 'diseaseRecommendations.json');
-const pricePath = path.join(process.cwd(), 'data', 'priceData.json');
-
-let recommendations = {};
-let priceData = {};
-
-try {
-  recommendations = JSON.parse(fs.readFileSync(recPath, 'utf8')).recommendations;
-} catch (err) {
-  console.error("❌ Failed to load disease recommendations:", err.message);
+// diseaseRecommendations / priceData are "config" collections (see
+// utils/mongoStore.js) — fetched lazily and cached in memory rather than at
+// module load, since this module is imported before index.js connects to
+// Mongo; a top-level await here would run a query before the connection
+// exists.
+let recommendationsCache = null;
+async function getRecommendations() {
+  if (recommendationsCache) return recommendationsCache;
+  try {
+    const doc = await readConfig('diseaseRecommendations', { recommendations: {} });
+    recommendationsCache = doc.recommendations || {};
+  } catch (err) {
+    console.error("❌ Failed to load disease recommendations:", err.message);
+    recommendationsCache = {};
+  }
+  return recommendationsCache;
 }
 
-try {
-  priceData = JSON.parse(fs.readFileSync(pricePath, 'utf8')).prices;
-} catch (err) {
-  console.error("❌ Failed to load price data:", err.message);
+let priceDataCache = null;
+async function getPriceData() {
+  if (priceDataCache) return priceDataCache;
+  try {
+    const doc = await readConfig('priceData', { prices: {} });
+    priceDataCache = doc.prices || {};
+  } catch (err) {
+    console.error("❌ Failed to load price data:", err.message);
+    priceDataCache = {};
+  }
+  return priceDataCache;
 }
 
 // AI-powered disease matching using Gemini
@@ -30,6 +41,7 @@ async function aiMatchDisease(diseaseName) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return null;
 
+    const recommendations = await getRecommendations();
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
@@ -62,36 +74,49 @@ Reply with ONLY the exact key string (e.g. "Tomato___Leaf_Spot") that best match
   }
 }
 
+function calcHaversineKm(lat1, lng1, lat2, lng2) {
+  const p = Math.PI / 180;
+  const a = 0.5 - Math.cos((lat2 - lat1) * p)/2 + 
+            Math.cos(lat1 * p) * Math.cos(lat2 * p) * 
+            (1 - Math.cos((lng2 - lng1) * p))/2;
+  return 12742 * Math.asin(Math.sqrt(a));
+}
+
 function getDynamicMockShops(baseLat, baseLng) {
   const lat = parseFloat(baseLat) || 12.9716;
   const lng = parseFloat(baseLng) || 77.5946;
-  return [
+  const rawShops = [
     {
       name: "Shree Agro Suppliers",
-      address: "Main Market Road, Near Bus Stand",
+      address: "Main Market Road, Near Bus Stand, Kumbalgodu",
       rating: 4.6,
       phone: "+91 98765 43210",
       location: { lat: lat + 0.008, lng: lng + 0.006 },
-      availability: "In Stock",
-      distance: "1.2 km"
+      availability: "In Stock"
     },
     {
       name: "Sri Chamundeshwari Fertilizers",
-      address: "Station Road, Opposite SBI Bank",
+      address: "Station Road, Opposite SBI Bank, Kengeri",
       rating: 4.4,
       phone: "+91 99887 76655",
       location: { lat: lat - 0.007, lng: lng + 0.012 },
-      availability: "In Stock",
-      distance: "2.1 km"
+      availability: "In Stock"
     },
     {
       name: "Hassan Agro Bio Tech",
-      address: "NH-48, Agricultural Market Yard",
+      address: "NH-48, Agricultural Market Yard, Bannerghatta",
       rating: 4.5,
       phone: "+91 97766 55443",
       location: { lat: lat + 0.012, lng: lng - 0.009 },
-      availability: "Limited Stock",
-      distance: "3.5 km"
+      availability: "Limited Stock"
+    },
+    {
+      name: "Venkateshwara Krishi Kendra",
+      address: "Tavarekere Main Road, Near bus stand",
+      rating: 4.6,
+      phone: "+91 96655 44332",
+      location: { lat: lat + 0.005, lng: lng - 0.012 },
+      availability: "In Stock"
     },
     {
       name: "Kisan Krishi Kendra",
@@ -99,8 +124,7 @@ function getDynamicMockShops(baseLat, baseLng) {
       rating: 4.2,
       phone: "+91 98450 12345",
       location: { lat: lat - 0.011, lng: lng - 0.014 },
-      availability: "In Stock",
-      distance: "4.2 km"
+      availability: "In Stock"
     },
     {
       name: "Green Care Agri Store",
@@ -108,10 +132,21 @@ function getDynamicMockShops(baseLat, baseLng) {
       rating: 4.7,
       phone: "+91 99001 88776",
       location: { lat: lat + 0.015, lng: lng + 0.018 },
-      availability: "In Stock",
-      distance: "5.0 km"
+      availability: "In Stock"
     }
   ];
+
+  return rawShops
+    .map(shop => {
+      const d = calcHaversineKm(lat, lng, shop.location.lat, shop.location.lng);
+      return {
+        ...shop,
+        distanceVal: d,
+        distance: d.toFixed(1) + " km"
+      };
+    })
+    .filter(shop => shop.distanceVal <= 10.0)
+    .sort((a, b) => a.distanceVal - b.distanceVal);
 }
 
 // POST /api/treatment — Get treatment recommendation for a disease
@@ -122,6 +157,8 @@ router.post('/', async (req, res) => {
     if (!disease_name) {
       return res.status(400).json({ success: false, message: 'disease_name is required' });
     }
+
+    const recommendations = await getRecommendations();
 
     // Try exact match first
     let rec = recommendations[disease_name];
@@ -177,10 +214,11 @@ router.post('/', async (req, res) => {
     }
 
     // Get price data
+    const priceData = await getPriceData();
     const price = priceData[rec.priceKey] || null;
 
     // Automatically sync primary pesticide & alternative into Vendor Product Catalog
-    syncProductsToCatalog([
+    await syncProductsToCatalog([
       { name: rec.pesticide, category: rec.category, dosage: rec.dosage, crop: rec.crop, whyThis: rec.application },
       rec.alternative ? { name: rec.alternative, category: rec.category, dosage: rec.altDosage, crop: rec.crop } : null
     ].filter(Boolean));
@@ -225,7 +263,7 @@ router.get('/ip-location', async (req, res) => {
   res.json({ success: true, lat: 12.8006, lng: 77.5084, city: 'Bengaluru' });
 });
 
-// GET /api/treatment/nearby-shops — Find nearby fertilizer/pesticide shops
+// GET /api/treatment/nearby-shops — Find ALL nearby fertilizer/pesticide/agri shops within 10 km
 router.get('/nearby-shops', async (req, res) => {
   try {
     const { lat, lng } = req.query;
@@ -237,53 +275,72 @@ router.get('/nearby-shops', async (req, res) => {
     // If we have a real API key, use Google Maps Places API
     if (apiKey && apiKey !== '' && apiKey !== 'your_key_here') {
       try {
-        const keyword = encodeURIComponent('fertilizer shop pesticide shop agricultural shop');
-        const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${userLat},${userLng}&radius=10000&keyword=${keyword}&key=${apiKey}`;
-        
-        const response = await fetch(url);
-        const data = await response.json();
+        const keywords = ['fertilizer', 'pesticide', 'agricultural', 'krishi', 'seed', 'agro', 'kisan'];
+        let allPlaces = [];
 
-        if (data.results && data.results.length > 0) {
-          const p = Math.PI / 180;
+        await Promise.all(keywords.map(async (kw) => {
+          try {
+            const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${userLat},${userLng}&radius=10000&keyword=${encodeURIComponent(kw)}&key=${apiKey}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.results && data.results.length > 0) {
+              allPlaces.push(...data.results);
+            }
+          } catch (err) {}
+        }));
 
-          const shops = data.results.slice(0, 8).map(place => {
+        if (allPlaces.length > 0) {
+          const map = new Map();
+          // Excludes nursery/garden/plant terms on purpose — the user wants agri product shops (fertilizer, pesticide, seed, etc), not plant nurseries.
+          const AGRI_NAME_HINTS = /fertiliz|fertilis|agro|agri|pesticide|krishi|kisan|seed|bio|organic|farm|chem/i;
+          const EXCLUDE_HINTS = /nursery|garden|plant\s*nursery|landscap/i;
+
+          const shopsWithDist = [];
+          for (const place of allPlaces) {
+            if (!place.place_id || map.has(place.place_id)) continue;
+            map.set(place.place_id, true);
+
             const shopLat = place.geometry?.location?.lat;
             const shopLng = place.geometry?.location?.lng;
-            
-            let distStr = null;
-            if (shopLat !== undefined && shopLng !== undefined && !isNaN(userLat) && !isNaN(userLng)) {
-               const a = 0.5 - Math.cos((shopLat - userLat) * p)/2 + 
-               Math.cos(userLat * p) * Math.cos(shopLat * p) * 
-               (1 - Math.cos((shopLng - userLng) * p))/2;
-               const d = 12742 * Math.asin(Math.sqrt(a));
-               distStr = d.toFixed(1) + " km";
+            if (shopLat === undefined || shopLng === undefined) continue;
+
+            const name = place.name || 'Agri Shop';
+            if (!AGRI_NAME_HINTS.test(name) || EXCLUDE_HINTS.test(name)) continue;
+
+            const distVal = calcHaversineKm(userLat, userLng, shopLat, shopLng);
+            if (distVal <= 10.0) {
+              shopsWithDist.push({
+                name,
+                address: place.vicinity || 'Address not available',
+                rating: place.rating || 4.2,
+                phone: null,
+                location: { lat: shopLat, lng: shopLng },
+                availability: 'In Stock',
+                distanceVal: distVal,
+                distance: distVal.toFixed(1) + " km",
+                placeId: place.place_id
+              });
             }
+          }
 
-            return {
-              name: place.name || 'Unknown Store',
-              address: place.vicinity || 'Address not available',
-              rating: place.rating || 4.2,
-              phone: null,
-              location: { lat: shopLat, lng: shopLng },
-              availability: 'In Stock',
-              distance: distStr,
-              placeId: place.place_id
-            };
-          });
+          // Sort ascending by distance — return ALL shops within 10 km without slice limit!
+          shopsWithDist.sort((a, b) => a.distanceVal - b.distanceVal);
 
-          return res.json({
-            success: true,
-            source: 'google_maps',
-            disclaimer: 'Availability may vary, please confirm with store',
-            data: shops
-          });
+          if (shopsWithDist.length > 0) {
+            return res.json({
+              success: true,
+              source: 'google_maps',
+              disclaimer: 'Availability may vary, please confirm with store',
+              data: shopsWithDist
+            });
+          }
         }
       } catch (apiErr) {
         console.error("⚠ Google Maps API error, falling back to mock:", apiErr.message);
       }
     }
 
-    // Fallback: return mock data centered on user's actual location
+    // Fallback: return mock data centered on user's actual location (strictly within 10 km, no limit)
     res.json({
       success: true,
       source: 'mock',
@@ -298,7 +355,8 @@ router.get('/nearby-shops', async (req, res) => {
 });
 
 // GET /api/treatment/diseases — List all supported diseases (for dropdown)
-router.get('/diseases', (req, res) => {
+router.get('/diseases', async (req, res) => {
+  const recommendations = await getRecommendations();
   const diseases = Object.entries(recommendations).map(([key, val]) => ({
     key,
     disease: val.disease,
@@ -308,12 +366,9 @@ router.get('/diseases', (req, res) => {
   res.json({ success: true, data: diseases });
 });
 
-function syncProductsToCatalog(items) {
+async function syncProductsToCatalog(items) {
   try {
-    const catalogPath = path.join(process.cwd(), 'data', 'productCatalog.json');
-    if (!fs.existsSync(catalogPath)) return;
-
-    const catalogData = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+    const catalogData = await readConfig('productCatalog', { products: [] });
     let catalogProducts = catalogData.products || [];
     let updated = false;
 
@@ -345,7 +400,7 @@ function syncProductsToCatalog(items) {
 
     if (updated) {
       catalogData.products = catalogProducts;
-      fs.writeFileSync(catalogPath, JSON.stringify(catalogData, null, 2));
+      await writeConfig('productCatalog', catalogData);
     }
   } catch (err) {
     console.error("Error syncing treatment product to catalog:", err.message);

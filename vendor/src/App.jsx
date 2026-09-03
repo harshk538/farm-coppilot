@@ -15,7 +15,7 @@ const DEFAULT_SHOPS = [
 ];
 
 /* ── Navbar with Store Switcher Dropdown ────────────────────────── */
-function VendorNavbar({ pendingCount, pendingEquipCount, shops, activeShop, onSelectShop }) {
+function VendorNavbar({ pendingCount, pendingEquipCount, deliveriesCount, shops, activeShop, onSelectShop }) {
   return (
     <header className="vendor-header">
       <div className="flex items-center gap-6">
@@ -33,9 +33,18 @@ function VendorNavbar({ pendingCount, pendingEquipCount, shops, activeShop, onSe
             {pendingCount > 0 && <span className="vendor-nav-badge">{pendingCount}</span>}
           </NavLink>
 
+          <NavLink to="/deliveries" className={({ isActive }) => `vendor-nav-link ${isActive ? 'active' : ''}`}>
+            <span>Deliveries</span>
+            {deliveriesCount > 0 && <span className="vendor-nav-badge">{deliveriesCount}</span>}
+          </NavLink>
+
           <NavLink to="/equipment-rentals" className={({ isActive }) => `vendor-nav-link ${isActive ? 'active' : ''}`}>
             <span>Equipment Rentals</span>
             {pendingEquipCount > 0 && <span className="vendor-nav-badge">{pendingEquipCount}</span>}
+          </NavLink>
+
+          <NavLink to="/booked-jobs" className={({ isActive }) => `vendor-nav-link ${isActive ? 'active' : ''}`}>
+            <span>Booked Jobs</span>
           </NavLink>
 
           <NavLink to="/fleet" className={({ isActive }) => `vendor-nav-link ${isActive ? 'active' : ''}`}>
@@ -54,17 +63,17 @@ function VendorNavbar({ pendingCount, pendingEquipCount, shops, activeShop, onSe
 
       {/* Top Right Store Switcher Selector */}
       <div className="flex items-center gap-3">
-        <div className="bg-zinc-900 border border-purple-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-lg">
+        <div className="bg-zinc-900 border border-purple-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-lg w-fit max-w-[220px] shrink-0">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <div className="text-left">
-            <label className="block text-[9px] uppercase tracking-wider text-purple-400 font-bold">Active Store Context</label>
+          <div className="text-left min-w-0">
+            <label className="block text-[9px] uppercase tracking-wider text-purple-400 font-bold">Active Store</label>
             <select
               value={activeShop.id}
               onChange={(e) => {
                 const found = shops.find(s => s.id === e.target.value);
                 if (found) onSelectShop(found);
               }}
-              className="bg-transparent text-xs font-semibold text-white outline-none cursor-pointer border-none"
+              className="bg-transparent text-xs font-semibold text-white outline-none cursor-pointer border-none max-w-[150px] truncate"
             >
               {shops.map(s => (
                 <option key={s.id} value={s.id} className="bg-zinc-900 text-white">
@@ -122,7 +131,7 @@ function OrdersPage({ orders, products, activeShop, onStatusUpdate, loading, cla
         </div>
 
         <div className="flex items-center gap-1.5 bg-zinc-950 p-1.5 rounded-xl border border-zinc-800">
-          {['all', 'pending', 'confirmed', 'ready', 'rejected'].map(st => (
+          {['all', 'pending', 'confirmed', 'ready', 'delivered', 'rejected'].map(st => (
             <button
               key={st}
               onClick={() => setFilter(st)}
@@ -163,6 +172,7 @@ function OrdersPage({ orders, products, activeShop, onStatusUpdate, loading, cla
                       {order.status === 'pending' && (hasOutOfStockItems ? 'OUT OF STOCK IN INVENTORY' : 'PENDING BROADCAST')}
                       {order.status === 'confirmed' && (isClaimedByMe ? 'CONFIRMED BY YOU' : `CONFIRMED BY ${order.claimedByShopName}`)}
                       {order.status === 'ready' && 'READY FOR PICKUP'}
+                      {order.status === 'delivered' && '✅ DELIVERED'}
                       {order.status === 'rejected' && 'OUT OF STOCK'}
                     </span>
                   </div>
@@ -248,6 +258,27 @@ function OrdersPage({ orders, products, activeShop, onStatusUpdate, loading, cla
                     )}
                   </div>
                 </div>
+
+                {/* Delivery details — filled in by the farmer once the order is ready */}
+                {(order.status === 'ready' || order.status === 'delivered') && order.delivery && (
+                  <div className="bg-blue-950/20 border border-blue-500/20 p-3 rounded-xl space-y-1">
+                    <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
+                      📦 Delivery Details (confirmed by farmer)
+                    </span>
+                    <div className="text-xs text-zinc-300 leading-relaxed">
+                      <strong className="text-white">{order.delivery.fullName}</strong> · {order.delivery.phone}
+                      <br />
+                      {order.delivery.address}
+                      {order.delivery.landmark ? `, ${order.delivery.landmark}` : ''}
+                      {order.delivery.pincode ? ` - ${order.delivery.pincode}` : ''}
+                      <br />
+                      Payment:{' '}
+                      <strong className="text-emerald-400">
+                        {order.delivery.paymentMode === 'cod' ? 'Cash on Delivery' : 'Pay at Store Pickup'}
+                      </strong>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -258,6 +289,142 @@ function OrdersPage({ orders, products, activeShop, onStatusUpdate, loading, cla
 }
 
 /* ── Equipment Rentals Page ────────────────────────── */
+/* ── Booked Jobs Page ───────────────────────────────
+   Every request this shop actually won. A card starts as BOOKED and flips
+   itself to DELIVERED the moment the machine reaches the farmer — the server
+   already stamps that arrival, so nothing here needs to be pressed. */
+function BookedJobsPage({ activeShop }) {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRequests = async () => {
+    try {
+      const res = await axios.get(`${EQUIP_API}/requests`);
+      if (res.data.success) setRequests(res.data.data);
+    } catch (err) {
+      console.error('Error fetching booked jobs:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+    const interval = setInterval(fetchRequests, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const myJobs = requests.filter(r =>
+    r.status === 'booked' && r.acceptedQuote?.shopId === activeShop.id
+  );
+  const inTransit = myJobs.filter(r => !r.deliveryNotifiedAt);
+  const delivered = myJobs.filter(r => r.deliveryNotifiedAt);
+
+  const formatWhen = (iso) => {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+    });
+  };
+
+  const JobCard = ({ req, isDelivered }) => (
+    <div className={`vendor-glass-card space-y-4 relative ${isDelivered ? 'border-emerald-500/25' : 'border-sky-500/25'}`}>
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <span className="font-mono text-xs text-purple-400 font-semibold">{req.id}</span>
+        <span className={`status-badge ${isDelivered ? 'ready' : 'confirmed'}`}>
+          {isDelivered ? 'DELIVERED' : 'BOOKED · ON THE WAY'}
+        </span>
+      </div>
+
+      <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-800 space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-white">Farmer: {req.farmerName}</span>
+          <a href={`tel:${req.farmerPhone}`} className="text-xs text-emerald-400 font-medium hover:underline">
+            Call: {req.farmerPhone}
+          </a>
+        </div>
+        <p className="text-xs text-zinc-400">Location: {req.location}</p>
+      </div>
+
+      <div className="space-y-1.5 text-xs text-zinc-300">
+        <div>Equipment: <strong className="text-white">{req.equipmentTypeName}</strong></div>
+        <div>Work: <strong className="text-white">{req.workType}</strong> ({req.landAreaAcres} Acres)</div>
+        <div>Required: <strong className="text-white">{req.requiredDate} ({req.preferredTime})</strong></div>
+      </div>
+
+      <div className={`rounded-xl p-3 space-y-1.5 border ${isDelivered ? 'bg-emerald-500/5 border-emerald-500/25' : 'bg-sky-500/5 border-sky-500/25'}`}>
+        <div className="flex items-center justify-between">
+          <span className={`text-[10px] font-bold uppercase tracking-wide ${isDelivered ? 'text-emerald-400' : 'text-sky-400'}`}>
+            Machine Sent
+          </span>
+          <span className={`text-sm font-bold ${isDelivered ? 'text-emerald-400' : 'text-sky-400'}`}>
+            ₹{req.acceptedQuote?.calculatedPrice}
+          </span>
+        </div>
+        <p className="text-sm font-semibold text-white">{req.acceptedQuote?.machineName}</p>
+        <p className="text-xs text-zinc-400">
+          Driver: {req.acceptedQuote?.ownerName}
+          {req.acceptedQuote?.distanceKm ? ` · ${req.acceptedQuote.distanceKm} away` : ''}
+        </p>
+        <div className="flex items-center gap-4 pt-1 text-[11px] text-zinc-500">
+          <span>Owner gets ₹{req.acceptedQuote?.ownerShare}</span>
+          <span className="text-purple-400">Your commission ₹{req.acceptedQuote?.vendorCommission}</span>
+        </div>
+      </div>
+
+      <div className="border-t border-white/5 pt-3">
+        <p className="text-xs text-zinc-500">
+          {isDelivered
+            ? `✅ Reached the farmer on ${formatWhen(req.deliveryNotifiedAt)}. The farmer has been notified by SMS.`
+            : `🔒 Booked ${formatWhen(req.bookedAt)}. On its way — this card turns green by itself once the machine reaches the farmer.`}
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 animate-fade-up">
+      <div>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Booked Jobs</h1>
+        <p className="text-xs text-zinc-400 mt-1">
+          Jobs farmers booked with <strong className="text-purple-400">{activeShop.name}</strong> · quotes are locked, status updates on its own
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="vendor-glass-card text-center py-12 text-zinc-500">Loading booked jobs...</div>
+      ) : myJobs.length === 0 ? (
+        <div className="vendor-glass-card text-center py-12 text-zinc-500">
+          No booked jobs yet for {activeShop.name}. Win a bid on the Equipment Rentals page and it will appear here.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-8">
+          {inTransit.length > 0 && (
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-tight">🚜 On The Way ({inTransit.length})</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Machine dispatched, not yet at the farm.</p>
+              </div>
+              {inTransit.map(req => <JobCard key={req.id} req={req} isDelivered={false} />)}
+            </div>
+          )}
+
+          {delivered.length > 0 && (
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-tight">✓ Delivered ({delivered.length})</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Machine has reached the farmer.</p>
+              </div>
+              {delivered.map(req => <JobCard key={req.id} req={req} isDelivered={true} />)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Equipment Rentals Page ─────────────────────────── */
 function EquipmentRentalsPage({ activeShop, owners }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -310,6 +477,13 @@ function EquipmentRentalsPage({ activeShop, owners }) {
   };
 
   const shopOwners = owners.filter(o => o.shopId === activeShop.id && o.available);
+  // Only owners whose machine type matches what the farmer actually asked for —
+  // a Tractor request should never let a Water Pump owner be dispatched to it.
+  const getMatchingOwners = (req) => shopOwners
+    .filter(o => o.machineType === req.equipmentTypeId)
+    // Cheapest bid first, so the best deal for the farmer is the default pick
+    .sort((a, b) => (a.biddingPrice ?? Infinity) - (b.biddingPrice ?? Infinity));
+  const matchingOwners = selectedReq ? getMatchingOwners(selectedReq) : [];
 
   return (
     <div className="space-y-6">
@@ -328,17 +502,40 @@ function EquipmentRentalsPage({ activeShop, owners }) {
         </div>
       </div>
 
-      {loading ? (
-        <div className="vendor-glass-card text-center py-12 text-zinc-500">
-          Loading equipment requests...
-        </div>
-      ) : requests.length === 0 ? (
-        <div className="vendor-glass-card text-center py-12 text-zinc-500">
-          No equipment rental requests in area.
-        </div>
-      ) : (
+      {(() => {
+        // Only show requests this shop can actually serve — hide ones where no
+        // registered owner has the matching machine, unless a quote was already
+        // sent for it (so in-progress ones stay visible to manage).
+        const visibleRequests = requests.filter(req =>
+          getMatchingOwners(req).length > 0 || (req.quotes || []).some(q => q.shopId === activeShop.id)
+        );
+
+        // Once the farmer picks a bid the job is locked and leaves this list — it
+        // moves to the Booked Jobs page, so nobody can re-price a tractor that is
+        // already on its way. A request booked with someone else is not this
+        // shop's business either, so it simply disappears from here.
+        const openRequests = visibleRequests.filter(req => req.status !== 'booked');
+
+        if (loading) {
+          return (
+            <div className="vendor-glass-card text-center py-12 text-zinc-500">
+              Loading equipment requests...
+            </div>
+          );
+        }
+        if (openRequests.length === 0) {
+          return (
+            <div className="vendor-glass-card text-center py-12 text-zinc-500">
+              No equipment rental requests match the machines registered under {activeShop.name}.
+            </div>
+          );
+        }
+
+        return (
+        <div className="flex flex-col gap-8">
+        {openRequests.length > 0 && (
         <div className="flex flex-col gap-4">
-          {requests.map(req => {
+          {openRequests.map(req => {
             const hasMyQuote = (req.quotes || []).some(q => q.shopId === activeShop.id);
             const isBookedWithMe = req.status === 'booked' && req.acceptedQuote && req.acceptedQuote.shopId === activeShop.id;
 
@@ -375,7 +572,7 @@ function EquipmentRentalsPage({ activeShop, owners }) {
                   <button
                     onClick={() => {
                       setSelectedReq(req);
-                      setSelectedOwnerId(shopOwners[0]?.id || '');
+                      setSelectedOwnerId(getMatchingOwners(req)[0]?.id || '');
                     }}
                     className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg transition-all cursor-pointer"
                   >
@@ -386,7 +583,10 @@ function EquipmentRentalsPage({ activeShop, owners }) {
             );
           })}
         </div>
-      )}
+        )}
+        </div>
+        );
+      })()}
 
       {/* Quote Dispatch Modal */}
       {selectedReq && (
@@ -405,9 +605,9 @@ function EquipmentRentalsPage({ activeShop, owners }) {
 
               <div>
                 <label className="block text-zinc-400 font-semibold mb-1">Select Available Equipment Owner in Your Network:</label>
-                {shopOwners.length === 0 ? (
+                {matchingOwners.length === 0 ? (
                   <div className="p-3 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-xl text-xs">
-                    No available machine owners registered under {activeShop.name}. Please register an owner in <strong>Fleet & Owners</strong> tab.
+                    No available {selectedReq.equipmentTypeName} owners registered under {activeShop.name}. Please register a matching owner in <strong>Fleet & Owners</strong> tab.
                   </div>
                 ) : (
                   <select
@@ -415,26 +615,33 @@ function EquipmentRentalsPage({ activeShop, owners }) {
                     onChange={(e) => setSelectedOwnerId(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-800 text-white p-2.5 rounded-xl outline-none"
                   >
-                    {shopOwners.map(o => (
+                    {matchingOwners.map(o => (
                       <option key={o.id} value={o.id}>
-                        {o.ownerName} — {o.machineName} ({o.rating}★)
+                        {o.ownerName} — {o.machineName} ({o.rating}★){o.biddingPrice ? ` — ₹${o.biddingPrice}` : ''}
                       </option>
                     ))}
                   </select>
                 )}
               </div>
 
-              {/* Automatic Price & Revenue Split Preview */}
-              <div className="bg-purple-950/40 border border-purple-500/30 p-3 rounded-xl space-y-1">
-                <div className="flex justify-between items-center text-sm font-bold text-white">
-                  <span>Calculated Quote Price:</span>
-                  <span className="text-emerald-400">₹{selectedReq.landAreaAcres * 500}</span>
-                </div>
-                <div className="flex justify-between text-[11px] text-zinc-400">
-                  <span>Owner Payout (90%): ₹{Math.round(selectedReq.landAreaAcres * 500 * 0.9)}</span>
-                  <span>Vendor Commission (10%): ₹{Math.round(selectedReq.landAreaAcres * 500 * 0.1)}</span>
-                </div>
-              </div>
+              {/* Price & Revenue Split Preview — based on the selected owner's own bidding price */}
+              {(() => {
+                const selectedOwner = matchingOwners.find(o => o.id === selectedOwnerId);
+                const rate = selectedOwner?.biddingPrice || 500;
+                const quotePrice = selectedReq.landAreaAcres * rate;
+                return (
+                  <div className="bg-purple-950/40 border border-purple-500/30 p-3 rounded-xl space-y-1">
+                    <div className="flex justify-between items-center text-sm font-bold text-white">
+                      <span>Quote Price ({selectedOwner ? `${selectedOwner.ownerName}'s bid` : 'select an owner'}):</span>
+                      <span className="text-emerald-400">₹{quotePrice}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-zinc-400">
+                      <span>Owner Payout (90%): ₹{Math.round(quotePrice * 0.9)}</span>
+                      <span>Vendor Commission (10%): ₹{Math.round(quotePrice * 0.1)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -460,27 +667,63 @@ function EquipmentRentalsPage({ activeShop, owners }) {
 }
 
 /* ── Fleet & Owners Page ──────────────────────────── */
-function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus }) {
+const MACHINE_PRESETS = [
+  { name: 'Mahindra 575 DI Tractor (45 HP)', type: 'EQ-TRAC' },
+  { name: 'Sonalika DI 745 III (50 HP)', type: 'EQ-TRAC' },
+  { name: 'Swaraj 744 FE Tractor (48 HP)', type: 'EQ-TRAC' },
+  { name: 'Shaktiman Rotary Tiller 7ft', type: 'EQ-ROTA' },
+  { name: 'Fieldking Rotavator 6ft', type: 'EQ-ROTA' },
+  { name: 'Kubota DC-68G Combine Harvester', type: 'EQ-HARV' },
+  { name: 'Preet 987 Combine Harvester', type: 'EQ-HARV' },
+  { name: 'Kirloskar 5HP Heavy Diesel Water Pump', type: 'EQ-PUMP' },
+  { name: 'Crompton 3HP Submersible Pump', type: 'EQ-PUMP' }
+];
+
+function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus, onUpdateOwner }) {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [formData, setFormData] = useState({
-    ownerName: '',
-    ownerPhone: '',
-    machineType: 'EQ-TRAC',
-    machineName: '',
-    location: activeShop.location
-  });
+  const [editingOwnerId, setEditingOwnerId] = useState(null);
+  const EMPTY_FORM = { ownerName: '', ownerPhone: '', machineType: 'EQ-TRAC', machineName: '', location: '', biddingPrice: '' };
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   const shopOwners = owners.filter(o => o.shopId === activeShop.id);
 
+  const openAddModal = () => {
+    setEditingOwnerId(null);
+    setFormData(EMPTY_FORM);
+    setShowAddModal(true);
+  };
+
+  const openManageModal = (owner) => {
+    setEditingOwnerId(owner.id);
+    setFormData({
+      ownerName: owner.ownerName || '',
+      ownerPhone: owner.ownerPhone || '',
+      machineType: owner.machineType || 'EQ-TRAC',
+      machineName: owner.machineName || '',
+      location: owner.location || '',
+      biddingPrice: owner.biddingPrice || ''
+    });
+    setShowAddModal(true);
+  };
+
+  const closeModal = () => {
+    setShowAddModal(false);
+    setEditingOwnerId(null);
+    setFormData(EMPTY_FORM);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onAddOwner({
-      ...formData,
-      shopId: activeShop.id,
-      shopName: activeShop.name
-    });
-    setShowAddModal(false);
-    setFormData({ ownerName: '', ownerPhone: '', machineType: 'EQ-TRAC', machineName: '', location: activeShop.location });
+    if (editingOwnerId) {
+      onUpdateOwner(editingOwnerId, { ...formData });
+    } else {
+      onAddOwner({
+        ...formData,
+        shopId: activeShop.id,
+        shopName: activeShop.name
+      });
+    }
+    closeModal();
   };
 
   return (
@@ -494,7 +737,7 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus }) {
         </div>
 
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={openAddModal}
           className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg cursor-pointer"
         >
           + Register Machine Owner
@@ -521,20 +764,31 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus }) {
                 <p className="text-xs text-zinc-300 font-semibold mt-1">Owner: {o.ownerName}</p>
                 <p className="text-xs text-zinc-400">Phone: {o.ownerPhone}</p>
                 <p className="text-xs text-zinc-500">Location: {o.location}</p>
+                {o.biddingPrice ? (
+                  <p className="text-xs text-emerald-400 font-semibold mt-1">Bidding Price: ₹{Math.round(o.biddingPrice * 1.1)} <span className="text-zinc-500 font-normal">(incl. 10% vendor cut)</span></p>
+                ) : null}
               </div>
 
               <div className="border-t border-white/5 pt-3 flex items-center justify-between mt-3">
                 <span className="text-xs font-medium text-zinc-300">
                   {o.available ? '🟢 Available for Rent' : '🔴 Busy / In Use'}
                 </span>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={o.available !== false}
-                    onChange={(e) => onToggleOwnerStatus(o.id, e.target.checked)}
-                  />
-                  <span className="slider" />
-                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => openManageModal(o)}
+                    className="px-3 py-1 rounded-lg border border-zinc-700 text-zinc-300 text-[11px] font-semibold hover:border-purple-500 hover:text-purple-300 cursor-pointer"
+                  >
+                    Manage
+                  </button>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={o.available !== false}
+                      onChange={(e) => onToggleOwnerStatus(o.id, e.target.checked)}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
               </div>
             </div>
           ))
@@ -546,8 +800,8 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus }) {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-md w-full space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-bold text-white">Register Equipment Owner</h3>
-              <button type="button" onClick={() => setShowAddModal(false)} className="text-zinc-500 hover:text-white">✕</button>
+              <h3 className="text-base font-bold text-white">{editingOwnerId ? 'Manage Machine Owner' : 'Register Equipment Owner'}</h3>
+              <button type="button" onClick={closeModal} className="text-zinc-500 hover:text-white">✕</button>
             </div>
 
             <div>
@@ -556,7 +810,6 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus }) {
                 type="text"
                 value={formData.ownerName}
                 onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                placeholder="e.g. Ramesh Gowda"
                 className="w-full bg-zinc-950 border border-zinc-800 text-white text-xs p-2.5 rounded-xl outline-none"
                 required
               />
@@ -568,7 +821,6 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus }) {
                 type="text"
                 value={formData.ownerPhone}
                 onChange={(e) => setFormData({ ...formData, ownerPhone: e.target.value })}
-                placeholder="+91 98765 00000"
                 className="w-full bg-zinc-950 border border-zinc-800 text-white text-xs p-2.5 rounded-xl outline-none"
                 required
               />
@@ -576,20 +828,68 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus }) {
 
             <div>
               <label className="block text-xs text-zinc-400 font-semibold mb-1">Machine Name & Model</label>
+              <select
+                value=""
+                onChange={(e) => {
+                  const preset = MACHINE_PRESETS.find(m => m.name === e.target.value);
+                  if (preset) setFormData({ ...formData, machineName: preset.name, machineType: preset.type });
+                }}
+                className="w-full bg-zinc-950 border border-zinc-800 text-white text-xs p-2.5 rounded-xl outline-none mb-2"
+              >
+                <option value="" className="bg-zinc-900">-- Pick a common machine (optional) --</option>
+                {MACHINE_PRESETS.map(m => (
+                  <option key={m.name} value={m.name} className="bg-zinc-900">{m.name}</option>
+                ))}
+              </select>
               <input
                 type="text"
                 value={formData.machineName}
                 onChange={(e) => setFormData({ ...formData, machineName: e.target.value })}
-                placeholder="e.g. Mahindra 575 DI Tractor (45 HP)"
+                placeholder="Or type your own, e.g. Mahindra 575 DI Tractor (45 HP)"
                 className="w-full bg-zinc-950 border border-zinc-800 text-white text-xs p-2.5 rounded-xl outline-none"
                 required
               />
             </div>
 
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1">Address / Location</label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="w-full bg-zinc-950 border border-zinc-800 text-white text-xs p-2.5 rounded-xl outline-none"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1">Bidding Price (₹, what this owner charges)</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.biddingPrice}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setFormData({ ...formData, biddingPrice: '' });
+                  } else {
+                    const num = Math.max(0, Number(val));
+                    setFormData({ ...formData, biddingPrice: num });
+                  }
+                }}
+                placeholder="e.g. 450"
+                className="w-full bg-zinc-950 border border-zinc-800 text-white text-xs p-2.5 rounded-xl outline-none"
+                required
+              />
+              <p className="text-[10px] text-zinc-500 mt-1">
+                Rate per acre/hour/trip depending on machine type. Lower price wins more bookings — this is how owners compete for the same job.
+              </p>
+            </div>
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setShowAddModal(false)}
+                onClick={closeModal}
                 className="flex-1 py-2.5 rounded-xl bg-zinc-800 text-white text-xs font-semibold"
               >
                 Cancel
@@ -598,7 +898,7 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus }) {
                 type="submit"
                 className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold cursor-pointer shadow-lg"
               >
-                Save Owner
+                {editingOwnerId ? 'Save Changes' : 'Save Owner'}
               </button>
             </div>
           </form>
@@ -669,6 +969,89 @@ function InventoryPage({ products, activeShop, onStockToggle }) {
   );
 }
 
+/* ── Deliveries Page ───────────────────────── */
+function DeliveriesPage({ orders, activeShop }) {
+  const shopDeliveries = orders.filter(
+    o => (o.status === 'ready' || o.status === 'delivered') && o.claimedByShopId === activeShop.id && o.delivery
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Deliveries</h1>
+        <p className="text-xs text-zinc-400 mt-1">
+          Orders ready for pickup/delivery for <strong className="text-purple-400">{activeShop.name}</strong>
+        </p>
+      </div>
+
+      {shopDeliveries.length === 0 ? (
+        <div className="vendor-glass-card text-center py-12 text-zinc-500">
+          No deliveries yet for {activeShop.name}. Orders show up here once the farmer confirms a delivery address.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {shopDeliveries.map(order => {
+            const isDelivered = order.status === 'delivered';
+            return (
+            <div key={order.id} className="vendor-glass-card space-y-4">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <span className="font-mono text-xs text-purple-400 font-semibold">{order.id}</span>
+                <span className={`status-badge ${isDelivered ? 'delivered' : 'ready'}`}>
+                  {isDelivered ? '✅ DELIVERED' : 'ADDRESS CONFIRMED'}
+                </span>
+              </div>
+
+              <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-800/80 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-white">Farmer: {order.farmerName}</span>
+                  <a href={`tel:${order.farmerPhone}`} className="text-xs text-emerald-400 font-medium hover:underline">
+                    Call: {order.farmerPhone}
+                  </a>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-[11px] font-semibold uppercase text-zinc-400 tracking-wider">Items:</span>
+                <div className="space-y-1.5">
+                  {order.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs bg-zinc-900/40 px-3 py-2 rounded-lg border border-white/5">
+                      <span className="text-white font-medium">{item.name}</span>
+                      <span className="text-emerald-400 font-semibold">₹{item.price} x{item.qty || 1}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-blue-950/20 border border-blue-500/20 p-3 rounded-xl space-y-1">
+                <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
+                  📦 Delivery Address
+                </span>
+                <div className="text-xs text-zinc-300 leading-relaxed">
+                  <strong className="text-white">{order.delivery.fullName}</strong> · {order.delivery.phone}
+                  <br />
+                  {order.delivery.address}
+                  {order.delivery.landmark ? `, ${order.delivery.landmark}` : ''}
+                  {order.delivery.pincode ? ` - ${order.delivery.pincode}` : ''}
+                  <br />
+                  Payment:{' '}
+                  <strong className="text-emerald-400">
+                    {order.delivery.paymentMode === 'cod' ? 'Cash on Delivery' : 'Pay at Store Pickup'}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="border-t border-white/5 pt-3 flex items-center justify-between">
+                <span className="text-[11px] text-zinc-500">Total Value:</span>
+                <span className="text-base font-bold text-white">₹{order.totalAmount}</span>
+              </div>
+            </div>
+          );})}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Analytics Page ────────────────────────── */
 function AnalyticsPage({ stats, activeShop }) {
   return (
@@ -708,6 +1091,7 @@ export default function App() {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [owners, setOwners] = useState([]);
+  const [equipRequests, setEquipRequests] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [claimToast, setClaimToast] = useState(null);
@@ -715,24 +1099,32 @@ export default function App() {
   const loadShops = async () => {
     try {
       const res = await axios.get(`${API_BASE}/shops`);
-      if (res.data.success && res.data.data.length > 0) {
-        setShops(res.data.data);
+      if (res.data.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+        const newShops = res.data.data;
+        setShops(newShops);
+        setActiveShop(prev => {
+          if (!prev) return newShops[0];
+          const exists = newShops.some(s => s.id === prev.id);
+          return exists ? prev : newShops[0];
+        });
       }
     } catch (e) {}
   };
 
   const loadVendorData = async () => {
     try {
-      const [ordRes, prodRes, statRes, ownRes] = await Promise.all([
+      const [ordRes, prodRes, statRes, ownRes, equipReqRes] = await Promise.all([
         axios.get(`${API_BASE}/orders`),
-        axios.get(`${API_BASE}/products`),
+        axios.get(`${API_BASE}/products?shopId=${activeShop.id}`),
         axios.get(`${API_BASE}/stats?shopId=${activeShop.id}`),
-        axios.get(`${EQUIP_API}/owners?shopId=${activeShop.id}`)
+        axios.get(`${EQUIP_API}/owners?shopId=${activeShop.id}`),
+        axios.get(`${EQUIP_API}/requests`)
       ]);
       if (ordRes.data.success) setOrders(ordRes.data.data);
       if (prodRes.data.success) setProducts(prodRes.data.data);
       if (statRes.data.success) setStats(statRes.data.data);
       if (ownRes.data.success) setOwners(ownRes.data.data);
+      if (equipReqRes.data.success) setEquipRequests(equipReqRes.data.data);
     } catch (err) {
       console.error("Vendor fetch error:", err);
     } finally {
@@ -742,6 +1134,8 @@ export default function App() {
 
   useEffect(() => {
     loadShops();
+    const shopsInterval = setInterval(loadShops, 5000);
+    return () => clearInterval(shopsInterval);
   }, []);
 
   useEffect(() => {
@@ -776,7 +1170,7 @@ export default function App() {
 
   const handleStockToggle = async (productId, inStock) => {
     try {
-      await axios.patch(`${API_BASE}/products/${productId}/stock`, { inStock });
+      await axios.patch(`${API_BASE}/products/${productId}/stock`, { inStock, shopId: activeShop.id });
       loadVendorData();
     } catch (err) {
       console.error("Failed to toggle stock:", err);
@@ -801,17 +1195,33 @@ export default function App() {
     }
   };
 
+  const handleUpdateOwner = async (ownerId, updatedData) => {
+    try {
+      await axios.patch(`${EQUIP_API}/owners/${ownerId}`, updatedData);
+      loadVendorData();
+    } catch (err) {
+      console.error("Failed to update owner:", err);
+    }
+  };
+
   const pendingCount = orders.filter(o => o.status === 'pending').length;
+  const pendingEquipCount = equipRequests.filter(r =>
+    r.status !== 'booked' && !(r.quotes || []).some(q => q.shopId === activeShop.id)
+  ).length;
+  const deliveriesCount = orders.filter(
+    o => o.status === 'ready' && o.claimedByShopId === activeShop.id && o.delivery
+  ).length;
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/vendor">
       <div className="min-h-screen bg-[#0a0a0c] text-white">
         <div className="vendor-orb vendor-orb-1" />
         <div className="vendor-orb vendor-orb-2" />
 
         <VendorNavbar
           pendingCount={pendingCount}
-          pendingEquipCount={1}
+          pendingEquipCount={pendingEquipCount}
+          deliveriesCount={deliveriesCount}
           shops={shops}
           activeShop={activeShop}
           onSelectShop={(s) => setActiveShop(s)}
@@ -829,11 +1239,20 @@ export default function App() {
                 claimToast={claimToast}
               />
             } />
+            <Route path="/deliveries" element={
+              <DeliveriesPage
+                orders={orders}
+                activeShop={activeShop}
+              />
+            } />
             <Route path="/equipment-rentals" element={
               <EquipmentRentalsPage
                 activeShop={activeShop}
                 owners={owners}
               />
+            } />
+            <Route path="/booked-jobs" element={
+              <BookedJobsPage activeShop={activeShop} />
             } />
             <Route path="/fleet" element={
               <FleetPage
@@ -841,6 +1260,7 @@ export default function App() {
                 owners={owners}
                 onAddOwner={handleAddOwner}
                 onToggleOwnerStatus={handleToggleOwnerStatus}
+                onUpdateOwner={handleUpdateOwner}
               />
             } />
             <Route path="/inventory" element={

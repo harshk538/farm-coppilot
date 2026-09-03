@@ -1,28 +1,28 @@
 import express from 'express';
-import fs from 'fs';
-import path from 'path';
 import jwt from 'jsonwebtoken';
-import { fileURLToPath } from 'url';
 import { sendAlertNotification } from '../services/notificationService.js';
+import { readCollection, readConfig } from '../utils/mongoStore.js';
 
 const router = express.Router();
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const USERS_FILE = path.join(__dirname, '../data/users.json');
 const JWT_SECRET = process.env.JWT_SECRET || 'farmcopilot_secret';
 
-const readUsers = () => {
-  try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8')); }
-  catch { return []; }
-};
+const readUsers = () => readCollection('users', []);
 
-// Load disease risk rules
-const rulesPath = path.join(process.cwd(), 'data', 'diseaseRiskRules.json');
-let riskRules = [];
-
-try {
-  riskRules = JSON.parse(fs.readFileSync(rulesPath, 'utf8')).rules;
-} catch (err) {
-  console.error("❌ Failed to load disease risk rules:", err.message);
+// Disease risk rules (the "diseaseRiskRules" config collection) — fetched
+// lazily and cached in memory rather than with a top-level await, since this
+// module is imported before index.js calls connectDB(); a top-level await
+// here would try to run a Mongo query before the connection exists.
+let riskRulesCache = null;
+async function getRiskRules() {
+  if (riskRulesCache) return riskRulesCache;
+  try {
+    const doc = await readConfig('diseaseRiskRules', { rules: [] });
+    riskRulesCache = doc.rules || [];
+  } catch (err) {
+    console.error("❌ Failed to load disease risk rules:", err.message);
+    riskRulesCache = [];
+  }
+  return riskRulesCache;
 }
 
 // Mock weather data (used when no OpenWeather API key is available)
@@ -41,8 +41,9 @@ const mockWeather = {
 };
 
 // Evaluate disease risks based on weather conditions
-function evaluateRisks(weather) {
+async function evaluateRisks(weather) {
   const results = [];
+  const riskRules = await getRiskRules();
 
   for (const rule of riskRules) {
     const { conditions } = rule;
@@ -173,7 +174,7 @@ router.get('/', async (req, res) => {
     }
 
     // Run risk prediction engine
-    const risks = evaluateRisks(weather);
+    const risks = await evaluateRisks(weather);
 
     // Determine overall risk level
     let overallRisk = 'Low';
@@ -438,7 +439,7 @@ router.post('/simulate-alert', async (req, res) => {
       try {
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, JWT_SECRET);
-        const users = readUsers();
+        const users = await readUsers();
         user = users.find(u => u.id === decoded.id);
         console.log('simulate-alert: decoded id=', decoded.id, 'user found=', !!user);
       } catch (e) {

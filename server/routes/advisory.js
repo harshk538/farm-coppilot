@@ -3,18 +3,19 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { readConfig, appendToCollection, queryCollection, deleteFromCollection } from '../utils/mongoStore.js';
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
 
 // Helper to load all catalog items including CSV pest dataset
-const loadFullCatalog = () => {
+const loadFullCatalog = async () => {
   let products = [];
   try {
-    const catalogPath = path.join(process.cwd(), 'data', 'productCatalog.json');
-    products = JSON.parse(fs.readFileSync(catalogPath, 'utf8')).products || [];
+    const catalogDoc = await readConfig('productCatalog', { products: [] });
+    products = catalogDoc.products || [];
   } catch (err) {
-    console.error("❌ Failed to load product catalog:", err.message);
+    console.error("❌ Failed to load product catalog from MongoDB:", err.message);
   }
 
   // Also parse Pesticides.csv
@@ -76,7 +77,7 @@ router.post('/', upload.single('image'), async (req, res) => {
     console.log("📝 Incoming Query:", query || "(no text)", "| Target Language:", language || "English");
     if (image) console.log("📷 Incoming Image:", image.path);
 
-    const fullCatalog = loadFullCatalog();
+    const fullCatalog = await loadFullCatalog();
     const catalogSnippet = fullCatalog.slice(0, 50).map(p => `- ${p.name} (ID: ${p.id}): ${p.whyThis}`).join('\n');
 
     const targetLang = language && language !== 'English' && language !== 'en-IN' ? language : 'English';
@@ -108,8 +109,9 @@ Return your response in STRICT JSON format with these exact keys:
     }
 
     // Process image if uploaded
+    let imageBuffer = null;
     if (image) {
-      const imageBuffer = fs.readFileSync(image.path);
+      imageBuffer = fs.readFileSync(image.path);
       parts.push({
         inlineData: {
           data: imageBuffer.toString('base64'),
@@ -140,6 +142,31 @@ Return your response in STRICT JSON format with these exact keys:
     const recommendedProducts = (aiResponse.recommendedProductIds || [])
       .map(id => fullCatalog.find(p => p.id === id))
       .filter(Boolean);
+
+    // Save this diagnosis to the farmer's history so they can look it up
+    // later (photo included, as a base64 data URL — small farmer-scale
+    // usage, so no separate file storage is needed for this).
+    try {
+      await appendToCollection('diagnosisHistory', {
+        id: `DIAG-${Date.now()}`,
+        userId: req.body.userId || null,
+        query: query || '',
+        image: imageBuffer ? `data:image/jpeg;base64,${imageBuffer.toString('base64')}` : null,
+        diagnosis: {
+          issue: aiResponse.issue || 'Analyzing...',
+          issueEnglish: aiResponse.issueEnglish || aiResponse.issue || 'Analyzing...',
+          severity: aiResponse.severity || 'medium',
+          urgency: aiResponse.urgency || 'observe closely',
+          summary: aiResponse.summary,
+          summaryEnglish: aiResponse.summaryEnglish || aiResponse.summary,
+          languageName: targetLang
+        },
+        products: recommendedProducts,
+        createdAt: new Date().toISOString()
+      });
+    } catch (histErr) {
+      console.error('⚠️ Failed to save diagnosis history:', histErr.message);
+    }
 
     // Return real AI data
     res.json({
@@ -190,6 +217,31 @@ Return your response in STRICT JSON format with these exact keys:
         }
       }
     });
+  }
+});
+
+// GET /api/advisory/history?userId=... — a farmer's saved past AI
+// diagnoses (photo + result), newest first.
+router.get('/history', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const filter = userId ? { userId } : {};
+    const history = await queryCollection('diagnosisHistory', filter);
+    res.json({ success: true, data: history });
+  } catch (error) {
+    console.error('❌ Failed to load diagnosis history:', error.message);
+    res.status(500).json({ success: false, message: 'Error loading diagnosis history' });
+  }
+});
+
+// DELETE /api/advisory/history/:id — remove one saved diagnosis report.
+router.delete('/history/:id', async (req, res) => {
+  try {
+    await deleteFromCollection('diagnosisHistory', { id: req.params.id });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Failed to delete diagnosis history entry:', error.message);
+    res.status(500).json({ success: false, message: 'Error deleting diagnosis history entry' });
   }
 });
 

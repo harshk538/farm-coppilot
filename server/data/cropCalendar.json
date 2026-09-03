@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "source": "Government of India crop-season classification (Ministry of Agriculture & Farmers Welfare / ICAR) - standard Kharif/Rabi/Zaid system taught and used across Indian agriculture",
+    "note": "Exact sowing/harvest weeks vary by state and monsoon arrival; months given are the typical national window."
+  },
+  "seasons": [
+    {
+      "season": "Kharif",
+      "alsoCalled": "Monsoon / autumn crop",
+      "sowingWindow": "June-July (with the onset of the south-west monsoon)",
+      "harvestWindow": "September-October",
+      "rainfallDependency": "High - relies on monsoon rain, needs warm wet conditions",
+      "crops": [
+        "Rice",
+        "Maize",
+        "Jowar (Sorghum)",
+        "Bajra (Pearl millet)",
+        "Cotton",
+        "Soybean",
+        "Groundnut",
+        "Sugarcane",
+        "Turmeric",
+        "Moong (Green gram)",
+        "Urad (Black gram)",
+        "Tur (Pigeon pea)"
+      ]
+    },
+    {
+      "season": "Rabi",
+      "alsoCalled": "Winter crop",
+      "sowingWindow": "October-December (after monsoon withdrawal)",
+      "harvestWindow": "March-April",
+      "rainfallDependency": "Low - depends mainly on irrigation and winter dew; needs cool weather",
+      "crops": [
+        "Wheat",
+        "Barley",
+        "Mustard",
+        "Gram (Chickpea)",
+        "Lentil (Masoor)",
+        "Peas",
+        "Potato",
+        "Onion",
+        "Linseed"
+      ]
+    },
+    {
+      "season": "Zaid",
+      "alsoCalled": "Summer crop",
+      "sowingWindow": "March-June (short season between Rabi harvest and Kharif sowing)",
+      "harvestWindow": "June-July",
+      "rainfallDependency": "Very low - almost entirely irrigation dependent, hot season",
+      "crops": [
+        "Watermelon",
+        "Muskmelon",
+        "Cucumber",
+        "Vegetables (Bhindi/okra, gourds)",
+        "Moong (summer)",
+        "Sunflower (summer)",
+        "Fodder crops"
+      ]
+    }
+  ]
+}

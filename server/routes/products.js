@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { readConfig } from '../utils/mongoStore.js';
 
 const router = express.Router();
 
@@ -70,13 +71,13 @@ function getCategory(pestName, chemName) {
 }
 
 // Main Loader function: merges productCatalog.json + pesticides.csv data
-const loadAllProducts = () => {
+const loadAllProducts = async () => {
   let jsonProducts = [];
   try {
-    const jsonPath = path.join(__dirname, '../data/productCatalog.json');
-    jsonProducts = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')).products || [];
+    const catalogDoc = await readConfig('productCatalog', { products: [] });
+    jsonProducts = catalogDoc.products || [];
   } catch (err) {
-    console.error('Error loading productCatalog.json:', err.message);
+    console.error('Error loading productCatalog from MongoDB:', err.message);
   }
 
   // Load Pesticides.csv
@@ -139,9 +140,9 @@ const loadAllProducts = () => {
 };
 
 // GET /api/products — All products (JSON + CSV Dataset merged)
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const products = loadAllProducts();
+    const products = await loadAllProducts();
     res.json({ success: true, count: products.length, data: products });
   } catch (error) {
     console.error('❌ Products error:', error.message);
@@ -158,7 +159,7 @@ router.get('/by-disease', async (req, res) => {
       return res.status(400).json({ success: false, message: 'disease query param required' });
     }
 
-    const products = loadAllProducts();
+    const products = await loadAllProducts();
     const diseaseLower = disease.toLowerCase();
 
     // Step 1: Direct keyword match on product.diseases / targetPests array

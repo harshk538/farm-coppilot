@@ -1,0 +1,4 @@
+{
+  "watch": ["index.js", "routes", "services"],
+  "ignore": ["data/*", "data/**", "*.jpg", "*.png", "data/*.json"]
+}
