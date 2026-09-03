@@ -20,7 +20,7 @@ export default function AuthModal({ mode, onClose, onSuccess }) {
   const [pickerLocating, setPickerLocating] = useState(false);
   const { isLoaded: mapLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBxvrTZazeyOivBPdZFKC6oYV2ycRTnsqo',
   });
   const [error, setError] = useState('');
 

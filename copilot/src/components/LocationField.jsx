@@ -24,7 +24,7 @@ export default function LocationField({ value, coords, onChange, inputStyle, lab
 
   const { isLoaded: mapLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBxvrTZazeyOivBPdZFKC6oYV2ycRTnsqo',
   });
 
   const handleTyping = (e) => {
