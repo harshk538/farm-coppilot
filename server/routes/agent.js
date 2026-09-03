@@ -186,10 +186,16 @@ router.post('/chat', upload.single('image'), async (req, res) => {
 
     let parsedHistory = [];
     try { parsedHistory = history ? JSON.parse(history) : []; } catch { /* ignore bad history */ }
-    const chatHistory = parsedHistory.slice(-10).map(h => ({
+    const historyWithoutCurrent = parsedHistory.slice(0, -1);
+    const chatHistory = historyWithoutCurrent.slice(-10).map(h => ({
       role: h.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: String(h.text || '') }],
     }));
+
+    // Gemini API requires chatHistory to start with a 'user' message
+    while (chatHistory.length > 0 && chatHistory[0].role === 'model') {
+      chatHistory.shift();
+    }
 
     const chat = model.startChat({ history: chatHistory });
 

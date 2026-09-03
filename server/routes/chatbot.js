@@ -84,11 +84,15 @@ ${contextText}`,
     });
 
     const chatHistory = Array.isArray(history)
-      ? history.slice(-10).map(h => ({
+      ? history.slice(0, -1).slice(-10).map(h => ({
           role: h.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: String(h.text || '') }],
         }))
       : [];
+
+    while (chatHistory.length > 0 && chatHistory[0].role === 'model') {
+      chatHistory.shift();
+    }
 
     const chat = model.startChat({ history: chatHistory });
     const result = await chat.sendMessage(message);
