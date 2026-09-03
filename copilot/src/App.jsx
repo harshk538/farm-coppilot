@@ -12,6 +12,7 @@ import SoilTest from './pages/SoilTest';
 import SoilReport from './pages/SoilReport';
 import AuthModal from './components/AuthModal';
 import TrackerBar from './components/TrackerBar';
+import AgentWidget from './components/AgentWidget';
 import { TrackingProvider } from './context/TrackingContext';
 import './App.css';
 
@@ -493,6 +494,7 @@ export default function App() {
           </Routes>
         </div>
         <TrackerBar />
+        <AgentWidget user={user} />
       </div>
     </TrackingProvider>
     </BrowserRouter>
