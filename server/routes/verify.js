@@ -23,14 +23,14 @@ router.get('/gemini-handshake', async (req, res) => {
 
     try {
         const genAI = new GoogleGenerativeAI(key);
-        const model = genAI.getGenerativeModel({ model: 'gemini-3.7-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
         const result = await model.generateContent('Reply with just the word: CONNECTED');
         const text = result.response.text().trim();
 
         res.json({
             success: true,
             status: '✅ CONNECTED',
-            model: 'gemini-3.7-flash',
+            model: 'gemini-3.6-flash',
             keyPrefix: key.substring(0, 8) + '...',
             response: text
         });
