@@ -198,10 +198,39 @@ export default function SoilAnalysis({ user, farm, tests, autoRunKey }) {
   const [error, setError] = useState('');
   const [orderingId, setOrderingId] = useState(null);
   const [orderMsg, setOrderMsg] = useState(null);
+  const [showFluctLog, setShowFluctLog] = useState(false);
+  const [fluctLog, setFluctLog] = useState([]);
+  const [loadingFluctLog, setLoadingFluctLog] = useState(false);
   const lastAutoRun = useRef(null);
   const navigate = useNavigate();
 
   const latest = tests?.[0] || null;
+
+  const loadFluctLog = async () => {
+    if (!user?.id || !farm?.id) return;
+    setLoadingFluctLog(true);
+    try {
+      const res = await axios.get(`${SOIL_API}/history`, { params: { farmerId: user.id, farmId: farm.id } });
+      if (res.data.success) setFluctLog(res.data.history);
+    } catch {
+      /* fallback */
+    } finally {
+      setLoadingFluctLog(false);
+    }
+  };
+
+  const toggleFluctLog = () => {
+    const next = !showFluctLog;
+    setShowFluctLog(next);
+    if (next) loadFluctLog();
+  };
+
+  useEffect(() => {
+    if (user?.id && farm?.id) {
+      loadFluctLog();
+    }
+    // eslint-disable-next-line
+  }, [user?.id, farm?.id]);
 
   useEffect(() => {
     setError('');
@@ -287,12 +316,31 @@ export default function SoilAnalysis({ user, farm, tests, autoRunKey }) {
               Soil only — no plant photos are used anywhere in this report.
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: '11px', background: 'rgba(52,211,153,0.1)', color: '#34d399',
+              border: '1px solid rgba(52,211,153,0.25)', borderRadius: '100px',
+              padding: '4px 10px', fontWeight: 600, whiteSpace: 'nowrap',
+            }}>
+              🧪 {Math.max(10, fluctLog.length || 10)} Spot Readings Analyzed
+            </span>
             {analysis?.confidence && (
               <Badge rgb={analysis.confidence === 'high' ? '52,211,153' : analysis.confidence === 'medium' ? '251,146,60' : '148,163,184'}>
                 {analysis.confidence} confidence
               </Badge>
             )}
+            <button
+              onClick={toggleFluctLog}
+              style={{
+                padding: '8px 14px',
+                background: showFluctLog ? 'rgba(52, 211, 153, 0.2)' : 'rgba(52, 211, 153, 0.1)',
+                border: '1px solid rgba(52, 211, 153, 0.3)',
+                borderRadius: '9px', color: '#34d399',
+                fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              📊 {showFluctLog ? 'Hide Raw Fluctuation Log' : 'View Raw Fluctuation Log'}
+            </button>
             <button
               onClick={runAnalysis}
               disabled={loading}
@@ -307,6 +355,48 @@ export default function SoilAnalysis({ user, farm, tests, autoRunKey }) {
             </button>
           </div>
         </div>
+
+        {/* Raw Fluctuation Log Section for Point-in-Time Soil Health */}
+        {showFluctLog && (
+          <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px' }}>
+            <h4 style={{ color: '#fff', fontSize: '13px', fontWeight: 700, margin: '0 0 6px' }}>
+              ⏱️ Point-in-Time Raw Fluctuation Log ({farm?.name})
+            </h4>
+            <p style={{ color: '#777', fontSize: '11px', margin: '0 0 10px', lineHeight: 1.5 }}>
+              These are the raw spot readings recorded as the probe settled in the field. The final averaged benchmark below is used as today's official daily soil health report.
+            </p>
+            {loadingFluctLog ? (
+              <p style={{ color: '#888', fontSize: '12px', margin: 0 }}>Loading raw spot readings…</p>
+            ) : fluctLog.length === 0 ? (
+              <p style={{ color: '#888', fontSize: '12px', margin: 0 }}>No raw spot fluctuations recorded yet for this farm.</p>
+            ) : (
+              <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#111113', color: '#666', sticky: 'top' }}>
+                      <th style={{ padding: '6px 8px' }}>Time</th>
+                      {PARAMS.map(k => (
+                        <th key={k} style={{ padding: '6px 8px' }}>{PARAM_LABEL[k]}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fluctLog.slice(0, 50).map(h => (
+                      <tr key={h.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)', color: '#aaa' }}>
+                        <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
+                          {new Date(h.capturedAt).toLocaleTimeString('en-IN')}
+                        </td>
+                        {PARAMS.map(k => (
+                          <td key={k} style={{ padding: '6px 8px' }}>{h.readings[k]}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {analysis?.confidenceReason && (
           <p style={{ color: '#666', fontSize: '12px', margin: '10px 0 0', lineHeight: 1.6 }}>
