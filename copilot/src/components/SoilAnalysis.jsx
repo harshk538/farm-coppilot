@@ -440,10 +440,10 @@ export default function SoilAnalysis({ user, farm, tests, autoRunKey }) {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <h4 style={{ color: '#fff', fontSize: '16px', fontWeight: 700, margin: '0 0 4px' }}>
-                    📈 Predictive Trends & 7-Day Calculated Forecast Charts
+                    📊 Daily Soil Data & 7-Day Trend Analysis
                   </h4>
                   <p style={{ color: '#888', fontSize: '12px', margin: 0 }}>
-                    Calculated from {referenceData.predictiveAnalytics.historyCount} soil tests for this field over time. Dashed line represents projected future trajectory.
+                    Analyzed from daily soil tests and spot fluctuations for this field over time. Dashed line represents projected future trajectory.
                   </p>
                 </div>
                 <Badge rgb="139,92,246">Predictive Engine</Badge>
