@@ -12,6 +12,7 @@ import equipmentRoutes from './routes/equipment.js';
 import farmsRoutes from './routes/farms.js';
 import soilRoutes from './routes/soil.js';
 import agentRoutes from './routes/agent.js';
+import verifyRoutes from './routes/verify.js';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api/farms', farmsRoutes);
 app.use('/api/soil', soilRoutes);
 app.use('/api/agent', agentRoutes);
+app.use('/api/verify', verifyRoutes);
 
 // Test route
 app.get('/', (req, res) => {

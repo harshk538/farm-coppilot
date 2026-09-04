@@ -146,35 +146,62 @@ function Navbar({ user, onLogin, onSignup, onLogout }) {
         {/* RIGHT: Auth buttons or user info */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
           {user ? (
-            <div className="nav-desktop-only" style={{ alignItems: 'center', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  width: '28px', height: '28px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-                  boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 0 14px rgba(139,92,246,0.35)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '11px', fontWeight: 700, color: '#fff',
-                }}>
-                  {user.name.charAt(0).toUpperCase()}
+            <>
+              {/* Desktop User Badge & Logout */}
+              <div className="nav-desktop-only" style={{ alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+                    boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 0 14px rgba(139,92,246,0.35)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '11px', fontWeight: 700, color: '#fff',
+                  }}>
+                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#ccc' }}>
+                    {user.name ? user.name.split(' ')[0] : 'User'}
+                  </span>
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: 500, color: '#ccc' }}>
-                  {user.name.split(' ')[0]}
-                </span>
+                <button
+                  onClick={onLogout}
+                  style={{
+                    background: 'none', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px', cursor: 'pointer',
+                    color: '#666', fontSize: '12px', fontWeight: 500,
+                    padding: '5px 12px', transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(248,113,113,0.4)'; e.currentTarget.style.color = '#f87171'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#666'; }}
+                >
+                  Log out
+                </button>
               </div>
-              <button
-                onClick={onLogout}
-                style={{
-                  background: 'none', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px', cursor: 'pointer',
-                  color: '#666', fontSize: '12px', fontWeight: 500,
-                  padding: '5px 12px', transition: 'all 0.2s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(248,113,113,0.4)'; e.currentTarget.style.color = '#f87171'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#666'; }}
-              >
-                Log out
-              </button>
-            </div>
+
+              {/* Mobile User Pill in top navbar */}
+              <div className="nav-mobile-only" style={{ alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '4px 10px 4px 6px',
+                  borderRadius: '100px',
+                  backgroundColor: 'rgba(139,92,246,0.15)',
+                  border: '1px solid rgba(139,92,246,0.3)',
+                }}>
+                  <div style={{
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '10px', fontWeight: 700, color: '#fff',
+                    flexShrink: 0,
+                  }}>
+                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#e4e4e7', maxWidth: '85px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {user.name ? user.name.split(' ')[0] : 'User'}
+                  </span>
+                </div>
+              </div>
+            </>
           ) : (
             <>
               {/* Desktop Auth Buttons */}
@@ -209,7 +236,7 @@ function Navbar({ user, onLogin, onSignup, onLogout }) {
 
               {/* Mobile Auth Pill Button */}
               <button
-                onClick={onLogin}
+                onClick={() => { setMobileMenuOpen(false); onLogin(); }}
                 className="nav-mobile-only"
                 style={{
                   backgroundColor: '#fff',

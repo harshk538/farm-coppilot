@@ -1,4 +1,9 @@
-const isLocal = typeof window !== 'undefined' &&
+const isNativeApp = typeof window !== 'undefined' &&
+  window.Capacitor &&
+  typeof window.Capacitor.isNativePlatform === 'function' &&
+  window.Capacitor.isNativePlatform();
+
+const isLocal = !isNativeApp && typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' ||
    window.location.hostname === '127.0.0.1' ||
    window.location.hostname.startsWith('192.168.') ||

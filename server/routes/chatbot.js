@@ -66,7 +66,7 @@ router.post('/message', async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-3.7-flash',
       systemInstruction: `You are the Farm Copilot assistant — a friendly, plain-spoken helper for Indian farmers using the Farm Copilot app.
 
 You can help with:

@@ -72,7 +72,6 @@ router.post('/', upload.single('image'), async (req, res) => {
 
     // Initialize Gemini AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
     console.log("📝 Incoming Query:", query || "(no text)", "| Target Language:", language || "English");
     if (image) console.log("📷 Incoming Image:", image.path);
@@ -120,8 +119,29 @@ Return your response in STRICT JSON format with these exact keys:
       });
     }
 
-    // Call Gemini
-    const result = await model.generateContent(parts);
+    // Call Gemini with model fallback loop
+    const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro'];
+    let result = null;
+    let lastError = null;
+
+    for (const m of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ model: m });
+        result = await model.generateContent(parts);
+        if (result && result.response) {
+          console.log(`✅ Advisory Diagnosis successful with model: ${m}`);
+          break;
+        }
+      } catch (err) {
+        console.warn(`⚠️ Advisory model ${m} failed:`, err.message);
+        lastError = err;
+      }
+    }
+
+    if (!result || !result.response) {
+      throw lastError || new Error("All Gemini models failed to generate content.");
+    }
+
     const textResponse = result.response.text();
     
     let aiResponse;

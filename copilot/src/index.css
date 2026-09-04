@@ -22,10 +22,22 @@
   body {
     margin: 0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background: radial-gradient(circle at 50% 0%, #160d29 0%, #080512 100%) no-repeat fixed;
+    background-color: #080512;
     color: #ededed;
     min-height: 100vh;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, #160d29 0%, #080512 100%) no-repeat;
+    z-index: -1;
+    pointer-events: none;
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   ::selection {
@@ -308,11 +320,13 @@
 
 /* Ambient glow orbs */
 .advisory-orb {
-  position: fixed;
+  position: absolute;
   border-radius: 50%;
   pointer-events: none;
-  filter: blur(80px);
+  filter: blur(60px);
   z-index: 0;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .advisory-orb-1 {
@@ -1239,4 +1253,35 @@
   font-size: 0.775rem;
   color: #e4e4e7;
   line-height: 1.5;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Mobile Scrolling & GPU Compositing Performance Optimizations
+   ────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  html, body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .noise-overlay::after {
+    display: none !important;
+  }
+
+  .advisory-orb {
+    display: none !important;
+  }
+
+  .advisory-card,
+  .advisory-result-card,
+  .advisory-recording-card,
+  .glass-card,
+  .glass-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(18, 18, 24, 0.96) !important;
+  }
 }

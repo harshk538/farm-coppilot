@@ -671,7 +671,7 @@ router.post('/analyze', async (req, res) => {
     const catalog = await loadCatalog();
     const promptText = buildPrompt({ farm, latest, history, trends, weather, catalog, referenceData });
 
-    const modelsToTry = ['gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest'];
+    const modelsToTry = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
     let result = null;
     let lastError = null;
 

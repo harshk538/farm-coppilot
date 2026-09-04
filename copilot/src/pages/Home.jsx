@@ -962,7 +962,7 @@ export default function Home() {
   ];
 
   return (
-    <div style={{ paddingTop: '56px', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ paddingTop: '56px', color: '#fff', fontFamily: "'Inter', sans-serif", width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       <style>{ALL_STYLES}</style>
 
       {/* ── HERO ── */}

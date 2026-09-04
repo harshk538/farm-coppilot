@@ -140,14 +140,17 @@ export default function AuthModal({ mode, onClose, onSuccess }) {
         : { name: form.name, email: form.email, phone: form.phone, password: form.password, fieldLocation: form.fieldLocation, fieldLocationCoords };
 
       const res = await axios.post(`${API_BASE_URL}${endpoint}`, payload);
-      if (res.data.success) {
+      if (res.data && res.data.success) {
         localStorage.setItem('fc_token', res.data.token);
         localStorage.setItem('fc_user', JSON.stringify(res.data.user));
         onSuccess(res.data.user);
         onClose();
+      } else {
+        setError(res.data?.message || 'Login failed. Please check your details and try again.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      console.error('Auth error:', err);
+      setError(err.response?.data?.message || err.message || 'Something went wrong. Please check your network connection.');
     } finally {
       setLoading(false);
     }
@@ -182,8 +185,9 @@ export default function AuthModal({ mode, onClose, onSuccess }) {
       <div
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, zIndex: 999,
-          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
         }}
       />
 
@@ -191,13 +195,15 @@ export default function AuthModal({ mode, onClose, onSuccess }) {
       <div style={{
         position: 'fixed', top: '50%', left: '50%',
         transform: 'translate(-50%,-50%)',
-        zIndex: 1000,
-        width: '100%', maxWidth: '420px',
+        zIndex: 10000,
+        width: '92%', maxWidth: '420px',
+        maxHeight: '90vh', overflowY: 'auto',
+        boxSizing: 'border-box',
         background: '#111113',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '1px solid rgba(255,255,255,0.12)',
         borderRadius: '20px',
-        padding: '32px',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
+        padding: '24px 20px',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.9)',
       }}>
         {/* Header */}
         <div style={{ marginBottom: '28px' }}>

@@ -195,12 +195,9 @@ export default function Advisory({ user, onLogin }) {
           disease: data.diagnosis.issue,
           timestamp: Date.now()
         }));
-        if (data?.products?.recommendations) {
-          localStorage.setItem('fc_advisory_products', JSON.stringify(data.products.recommendations));
-        }
       }
-      loadHistory();
     } catch (err) {
+      console.error('Advisory submission error:', err);
       setResponse({ diagnosis: { issue: 'Connection Error', summary: '❌ Could not reach the AI service. Please check your connection and API key.', severity: 'critical', urgency: 'immediate' } });
     } finally {
       setLoading(false);
