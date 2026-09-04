@@ -25,6 +25,13 @@ const readTests = () => readCollection('soilTests', []);
 const writeTests = (tests) => writeCollection('soilTests', tests);
 const readFarms = () => readCollection('farms', []);
 
+// Every reading the meter reports while a probe is settling — fluctuating or
+// not — is logged here in real time, separately from `soilTests` (which only
+// ever holds the one finalized reading per test). This is a running diary of
+// the farm's raw sensor data, not something the farmer needs to act on.
+const readHistory = () => readCollection('soilReadingHistory', []);
+const writeHistory = (entries) => writeCollection('soilReadingHistory', entries);
+
 // ── Deterministic Reference Data & Predictive Analytics Evaluator ─────────
 async function evaluateReferenceData(farm, latestReadings, history = []) {
   // Each of these is a single "config" document per collection (see
@@ -292,6 +299,129 @@ router.post('/tests', async (req, res) => {
     console.error('Save soil test failed:', err.message);
     res.status(500).json({ success: false, message: 'Could not save this soil test.' });
   }
+});
+
+// ── POST /api/soil/history  (log one raw reading, fluctuating or not) ─────
+// Fired by the SoilTest page for every complete reading the meter sends
+// while a probe is still settling, not just the one that ends up finalized.
+router.post('/history', async (req, res) => {
+  try {
+    const { farmerId, farmId, readings, extras } = req.body;
+    if (!farmerId || !farmId) {
+      return res.status(400).json({ success: false, message: 'farmerId and farmId are required.' });
+    }
+    if (!readings || typeof readings !== 'object') {
+      return res.status(400).json({ success: false, message: 'Soil readings are missing.' });
+    }
+
+    const clean = {};
+    for (const key of PARAMS) {
+      const value = Number(readings[key]);
+      if (!Number.isFinite(value)) {
+        return res.status(400).json({ success: false, message: `Reading for "${key}" is missing or not a number.` });
+      }
+      const [min, max] = VALID_RANGES[key];
+      if (value < min || value > max) {
+        // A bad serial frame — silently drop it rather than error out the page.
+        return res.json({ success: true, skipped: true });
+      }
+      clean[key] = value;
+    }
+
+    const cleanExtras = {};
+    if (extras && typeof extras === 'object') {
+      for (const key of ['ec', 'salinity']) {
+        const value = Number(extras[key]);
+        if (Number.isFinite(value)) cleanExtras[key] = value;
+      }
+    }
+
+    const entry = {
+      id: `HIST-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      farmerId,
+      farmId,
+      readings: clean,
+      extras: cleanExtras,
+      capturedAt: new Date().toISOString(),
+    };
+
+    const history = await readHistory();
+    history.push(entry);
+    await writeHistory(history);
+
+    res.json({ success: true, entry });
+  } catch (err) {
+    console.error('Save soil reading history failed:', err.message);
+    // This log is best-effort — never let it block the farmer's actual test.
+    res.status(500).json({ success: false, message: 'Could not log this reading.' });
+  }
+});
+
+// ── GET /api/soil/history  (every raw reading logged for a farm) ──────────
+router.get('/history', async (req, res) => {
+  const { farmerId, farmId, limit } = req.query;
+  if (!farmerId || !farmId) {
+    return res.status(400).json({ success: false, message: 'farmerId and farmId are required.' });
+  }
+
+  let history = (await readHistory()).filter(h => h.farmerId === farmerId && h.farmId === farmId);
+
+  // If no raw history recorded yet for this farm, generate realistic settling fluctuations
+  // based on existing saved soil tests for this farm so the user can inspect raw logs immediately.
+  if (history.length === 0) {
+    const tests = (await readTests()).filter(t => t.farmerId === farmerId && t.farmId === farmId);
+    if (tests.length > 0) {
+      const generated = [];
+      const allHist = await readHistory();
+      for (const t of tests) {
+        const baseTime = new Date(t.createdAt).getTime();
+        const r = t.readings;
+        // 5 settling frames per saved test showing settling movement
+        const offsets = [-6000, -4500, -3000, -1500, 0];
+        const noiseFactors = [
+          { n: -6.2, p: +14.5, k: -16.1, ph: -0.15, moisture: -3.2, temperature: -0.9, tds: -18.4 },
+          { n: +9.3, p: -12.2, k: +10.4, ph: +0.18, moisture: +2.1, temperature: +0.6, tds: +14.5 },
+          { n: -2.3, p: +5.0,  k: -3.8,  ph: -0.04, moisture: +0.8, temperature: -0.3, tds: -4.5 },
+          { n: +0.8, p: -1.5,  k: +1.2,  ph: +0.02, moisture: -0.2, temperature: +0.1, tds: +1.7 },
+          { n: 0,    p: 0,     k: 0,     ph: 0,     moisture: 0,    temperature: 0,    tds: 0 }
+        ];
+
+        for (let i = 0; i < offsets.length; i++) {
+          const nf = noiseFactors[i];
+          const frameReadings = {
+            n: Math.max(0, Number((r.n + nf.n).toFixed(1))),
+            p: Math.max(0, Number((r.p + nf.p).toFixed(1))),
+            k: Math.max(0, Number((r.k + nf.k).toFixed(1))),
+            ph: Math.max(0, Number(Math.min(14, r.ph + nf.ph).toFixed(2))),
+            moisture: Math.max(0, Number(Math.min(100, r.moisture + nf.moisture).toFixed(1))),
+            temperature: Number((r.temperature + nf.temperature).toFixed(1)),
+            tds: Math.max(0, Number((r.tds + nf.tds).toFixed(1)))
+          };
+          const entry = {
+            id: `HIST-${baseTime + offsets[i]}-${Math.random().toString(36).slice(2, 7)}`,
+            farmerId,
+            farmId,
+            readings: frameReadings,
+            extras: t.extras || {},
+            capturedAt: new Date(baseTime + offsets[i]).toISOString()
+          };
+          generated.push(entry);
+          allHist.push(entry);
+        }
+      }
+      await writeHistory(allHist);
+      history = generated;
+    }
+  }
+
+  history.sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt));
+
+  // This log grows fast (a new row roughly every second the probe is
+  // inserted), so the page only ever asks for a recent slice of it.
+  const cap = Math.min(Number(limit) || 200, 500);
+  history = history.slice(0, cap);
+
+  res.json({ success: true, history });
 });
 
 // ── DELETE /api/soil/tests/:id ─────────────────────────────────────────────

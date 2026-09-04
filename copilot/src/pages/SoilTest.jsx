@@ -192,6 +192,9 @@ export default function SoilTest({ user, onLogin }) {
   const [streaming, setStreaming] = useState(false);   // data arrived in the last 3s
   const [rawLines, setRawLines] = useState([]);
   const [showRaw, setShowRaw] = useState(false);
+  const [fluctHistory, setFluctHistory] = useState([]);
+  const [showFluctHistory, setShowFluctHistory] = useState(false);
+  const [loadingFluctHistory, setLoadingFluctHistory] = useState(false);
   const [breach, setBreach] = useState(null);       // what last restarted the clock
   const [resetCount, setResetCount] = useState(0);
   const [captured, setCaptured] = useState(null);   // the reading the page settled on
@@ -249,7 +252,31 @@ export default function SoilTest({ user, onLogin }) {
     }
   };
 
-  useEffect(() => { loadTests(selectedFarmId); /* eslint-disable-next-line */ }, [selectedFarmId, user?.id]);
+  const loadFluctuationHistory = async () => {
+    if (!user?.id || !selectedFarmId) return;
+    setLoadingFluctHistory(true);
+    try {
+      const res = await axios.get(`${SOIL_API}/history`, { params: { farmerId: user.id, farmId: selectedFarmId } });
+      if (res.data.success) setFluctHistory(res.data.history);
+    } catch {
+      /* the toggle just stays empty if this fails */
+    } finally {
+      setLoadingFluctHistory(false);
+    }
+  };
+
+  const toggleFluctHistory = () => {
+    const next = !showFluctHistory;
+    setShowFluctHistory(next);
+    if (next) loadFluctuationHistory();
+  };
+
+  useEffect(() => {
+    loadTests(selectedFarmId);
+    setShowFluctHistory(false);
+    setFluctHistory([]);
+    /* eslint-disable-next-line */
+  }, [selectedFarmId, user?.id]);
 
   // ── Stability clock — ticks independently so the bar moves smoothly and
   //    so a meter that stops sending is noticed. ───────────────────────────
@@ -301,6 +328,7 @@ export default function SoilTest({ user, onLogin }) {
     const snapshot = { ...reading };
     liveRef.current = snapshot;
     setLive(snapshot);
+    logHistory(snapshot, { ...extrasRef.current });
 
     // Open a new stability window whenever the probe moves out of tolerance.
     const now = Date.now();
@@ -395,7 +423,13 @@ export default function SoilTest({ user, onLogin }) {
     setNotice('');
   };
 
+  const simIntervalRef = useRef(null);
+
   const disconnect = async () => {
+    if (simIntervalRef.current) {
+      clearInterval(simIntervalRef.current);
+      simIntervalRef.current = null;
+    }
     keepReadingRef.current = false;
     try { await readerRef.current?.cancel(); } catch { /* already gone */ }
     try { await closedRef.current; } catch { /* already gone */ }
@@ -417,6 +451,46 @@ export default function SoilTest({ user, onLogin }) {
     setLive(null);
     setStableElapsed(0);
     setStreaming(false);
+  };
+
+  const startDemoStream = () => {
+    disconnect();
+    startNewReading();
+    setConnected(true);
+    setStreaming(true);
+    setShowRaw(true);
+    setShowFluctHistory(true);
+
+    const targetN = Number((140 + Math.random() * 30).toFixed(1));
+    const targetP = Number((370 + Math.random() * 30).toFixed(1));
+    const targetK = Number((365 + Math.random() * 30).toFixed(1));
+    const targetPh = Number((5.7 + Math.random() * 0.5).toFixed(2));
+    const targetMoisture = Number((62 + Math.random() * 12).toFixed(1));
+    const targetTemp = Number((26.0 + Math.random() * 2).toFixed(1));
+    const targetTds = Number((430 + Math.random() * 40).toFixed(1));
+
+    const frames = [
+      `[${Math.floor(Math.random() * 500)} ok / 0 fail]`,
+      `N: ${(targetN - 14.2).toFixed(1)} mg/kg  P: ${(targetP - 28.5).toFixed(1)} mg/kg  K: ${(targetK - 24.0).toFixed(1)} mg/kg  pH: ${(targetPh - 0.22).toFixed(2)}  Moisture: ${(targetMoisture - 4.8).toFixed(1)} %  Soil Temp: ${(targetTemp - 0.8).toFixed(1)} C  TDS: ${(targetTds - 32.1).toFixed(1)} ppm`,
+      `N: ${(targetN + 11.5).toFixed(1)} mg/kg  P: ${(targetP + 22.1).toFixed(1)} mg/kg  K: ${(targetK + 18.5).toFixed(1)} mg/kg  pH: ${(targetPh + 0.18).toFixed(2)}  Moisture: ${(targetMoisture + 3.9).toFixed(1)} %  Soil Temp: ${(targetTemp + 0.7).toFixed(1)} C  TDS: ${(targetTds + 24.2).toFixed(1)} ppm`,
+      `N: ${(targetN - 2.1).toFixed(1)} mg/kg  P: ${(targetP + 3.2).toFixed(1)} mg/kg  K: ${(targetK - 2.5).toFixed(1)} mg/kg  pH: ${(targetPh - 0.03).toFixed(2)}  Moisture: ${(targetMoisture + 0.6).toFixed(1)} %  Soil Temp: ${(targetTemp - 0.2).toFixed(1)} C  TDS: ${(targetTds - 3.8).toFixed(1)} ppm`,
+      `N: ${targetN.toFixed(1)} mg/kg  P: ${targetP.toFixed(1)} mg/kg  K: ${targetK.toFixed(1)} mg/kg  pH: ${targetPh.toFixed(2)}  Moisture: ${targetMoisture.toFixed(1)} %  Soil Temp: ${targetTemp.toFixed(1)} C  TDS: ${targetTds.toFixed(1)} ppm`,
+      `N: ${targetN.toFixed(1)} mg/kg  P: ${targetP.toFixed(1)} mg/kg  K: ${targetK.toFixed(1)} mg/kg  pH: ${targetPh.toFixed(2)}  Moisture: ${targetMoisture.toFixed(1)} %  Soil Temp: ${targetTemp.toFixed(1)} C  TDS: ${targetTds.toFixed(1)} ppm`,
+      `N: ${targetN.toFixed(1)} mg/kg  P: ${targetP.toFixed(1)} mg/kg  K: ${targetK.toFixed(1)} mg/kg  pH: ${targetPh.toFixed(2)}  Moisture: ${targetMoisture.toFixed(1)} %  Soil Temp: ${targetTemp.toFixed(1)} C  TDS: ${targetTds.toFixed(1)} ppm`,
+      `N: ${targetN.toFixed(1)} mg/kg  P: ${targetP.toFixed(1)} mg/kg  K: ${targetK.toFixed(1)} mg/kg  pH: ${targetPh.toFixed(2)}  Moisture: ${targetMoisture.toFixed(1)} %  Soil Temp: ${targetTemp.toFixed(1)} C  TDS: ${targetTds.toFixed(1)} ppm`,
+      `N: ${targetN.toFixed(1)} mg/kg  P: ${targetP.toFixed(1)} mg/kg  K: ${targetK.toFixed(1)} mg/kg  pH: ${targetPh.toFixed(2)}  Moisture: ${targetMoisture.toFixed(1)} %  Soil Temp: ${targetTemp.toFixed(1)} C  TDS: ${targetTds.toFixed(1)} ppm`
+    ];
+
+    let step = 0;
+    simIntervalRef.current = setInterval(() => {
+      if (step >= frames.length || capturedRef.current) {
+        clearInterval(simIntervalRef.current);
+        simIntervalRef.current = null;
+        return;
+      }
+      handleLine(frames[step]);
+      step++;
+    }, 850);
   };
 
   const saveTest = async (readings, source, extras) => {
@@ -444,6 +518,23 @@ export default function SoilTest({ user, onLogin }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Logs every reading the meter reports while it's still settling — not just
+  // the one final answer — so the farm keeps a full history of the raw data.
+  // Fire-and-forget: a farmer should never see an error from this.
+  const logHistory = (readings, extras) => {
+    if (!user?.id || !selectedFarmId) return;
+    axios.post(`${SOIL_API}/history`, {
+      farmerId: user.id,
+      farmId: selectedFarmId,
+      readings,
+      extras,
+    }).then(res => {
+      if (res.data.success && res.data.entry) {
+        setFluctHistory(prev => [res.data.entry, ...prev.filter(h => h.id !== res.data.entry.id)]);
+      }
+    }).catch(() => { /* best-effort log — never interrupts the reading */ });
   };
 
   const handleManualSubmit = (e) => {
@@ -602,6 +693,19 @@ export default function SoilTest({ user, onLogin }) {
                 }}
               >
                 {connecting ? 'Connecting…' : 'Connect Meter'}
+              </button>
+              <button
+                onClick={startDemoStream}
+                title="Simulate live NPK serial probe data stream on localhost"
+                style={{
+                  padding: '10px 14px',
+                  background: 'rgba(52, 211, 153, 0.12)',
+                  border: '1px solid rgba(52, 211, 153, 0.3)',
+                  borderRadius: '10px', color: '#34d399', fontSize: '13px',
+                  fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                ⚡ Demo Probe Stream
               </button>
             </div>
           )}
@@ -818,6 +922,56 @@ export default function SoilTest({ user, onLogin }) {
           The full AI report — what each reading means, what to do, which crops suit this soil,
           risks and trends — lives on the <Link to={`/soil-report?farm=${selectedFarmId}`} style={{ color: '#a78bfa', fontWeight: 600, textDecoration: 'none' }}>Soil Report</Link> page.
         </p>
+
+        {/* Every reading the meter sent while still settling, not just the one that got saved above */}
+        <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '14px' }}>
+          <button
+            onClick={toggleFluctHistory}
+            style={{ background: 'none', border: 'none', color: '#666', fontSize: '11px', cursor: 'pointer', padding: 0 }}
+          >
+            {showFluctHistory ? '▾ Hide raw fluctuation log' : '▸ Show raw fluctuation log'}
+          </button>
+          {showFluctHistory && (
+            loadingFluctHistory ? (
+              <p style={{ color: '#666', fontSize: '12px', margin: '8px 0 0' }}>Loading…</p>
+            ) : fluctHistory.length === 0 ? (
+              <p style={{ color: '#666', fontSize: '12px', margin: '8px 0 0' }}>
+                No fluctuation history logged yet for this farm — it fills up the next time a probe reading is taken.
+              </p>
+            ) : (
+              <div style={{ marginTop: '8px', maxHeight: '220px', overflow: 'auto', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '560px' }}>
+                  <thead>
+                    <tr style={{ color: '#666', textAlign: 'left', position: 'sticky', top: 0, background: '#111113' }}>
+                      <th style={{ padding: '6px 8px', fontWeight: 600 }}>Time</th>
+                      {PARAMS.map(k => (
+                        <th key={k} style={{ padding: '6px 8px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          {PARAM_META[k].label.replace(/ \(.\)/, '')}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fluctHistory.map(h => (
+                      <tr key={h.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)', color: '#999' }}>
+                        <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
+                          {new Date(h.capturedAt).toLocaleTimeString('en-IN')}
+                        </td>
+                        {PARAMS.map(k => (
+                          <td key={k} style={{ padding: '6px 8px' }}>{h.readings[k]}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+          <p style={{ color: '#555', fontSize: '10.5px', margin: '8px 0 0' }}>
+            Every value the meter sent while it was still settling — even the ones that never held
+            steady — shows up here, most recent first.
+          </p>
+        </div>
       </div>
 
       {/* ── Manual entry modal ──────────────────────────────────────────── */}

@@ -20,11 +20,13 @@ const userSchema = new Schema({ id: String }, looseOpts);
 const farmSchema = new Schema({ id: String }, looseOpts);
 const soilTestSchema = new Schema({ id: String }, looseOpts);
 const diagnosisHistorySchema = new Schema({ id: String }, looseOpts);
+const soilReadingHistorySchema = new Schema({ id: String }, looseOpts);
 
 export const User = mongoose.models.User || mongoose.model('User', userSchema, 'users');
 export const Farm = mongoose.models.Farm || mongoose.model('Farm', farmSchema, 'farms');
 export const SoilTest = mongoose.models.SoilTest || mongoose.model('SoilTest', soilTestSchema, 'soilTests');
 export const DiagnosisHistory = mongoose.models.DiagnosisHistory || mongoose.model('DiagnosisHistory', diagnosisHistorySchema, 'diagnosisHistory');
+export const SoilReadingHistory = mongoose.models.SoilReadingHistory || mongoose.model('SoilReadingHistory', soilReadingHistorySchema, 'soilReadingHistory');
 
 // ── Singleton / config collections (the whole JSON file becomes ONE
 //    document, so nothing about its original shape — nested objects, extra
@@ -54,7 +56,7 @@ export const SoilBorneDiseaseRisk = configModel('SoilBorneDiseaseRisk', 'soilBor
 // generic readCollection/writeCollection helpers in utils/mongoStore.js so
 // each route only has to say which collection it wants, not redeclare a
 // model import every time.
-export const ARRAY_MODELS = { users: User, farms: Farm, soilTests: SoilTest, diagnosisHistory: DiagnosisHistory };
+export const ARRAY_MODELS = { users: User, farms: Farm, soilTests: SoilTest, diagnosisHistory: DiagnosisHistory, soilReadingHistory: SoilReadingHistory };
 
 export const CONFIG_MODELS = {
   equipmentOwners: EquipmentOwners,

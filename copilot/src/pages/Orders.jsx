@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import LocationField from '../components/LocationField';
 
 const VENDOR_API = `${API_BASE_URL}/api/vendor`;
 
@@ -20,6 +21,7 @@ export default function Orders({ user, onLogin }) {
     fullName: '',
     phone: '',
     address: '',
+    location: null, // { lat, lng } from "Use Current Location" or "Select on Map"
     landmark: '',
     pincode: '',
     paymentMode: 'cod',
@@ -674,25 +676,20 @@ export default function Orders({ user, onLogin }) {
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#888', marginBottom: '5px', letterSpacing: '0.3px' }}>DELIVERY ADDRESS *</label>
-                <input
-                  type="text"
-                  required
-                  value={deliveryForm.address}
-                  onChange={(e) => setDeliveryForm({ ...deliveryForm, address: e.target.value })}
-                  placeholder="Village, Town/City, District"
-                  style={{
-                    width: '100%', backgroundColor: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px',
-                    padding: '10px 14px', color: '#fff', fontSize: '13px',
-                    outline: 'none', transition: 'border-color 0.2s',
-                    boxSizing: 'border-box',
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(139,92,246,0.5)'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-                />
-              </div>
+              <LocationField
+                value={deliveryForm.address}
+                coords={deliveryForm.location}
+                onChange={({ address, coords }) => setDeliveryForm({ ...deliveryForm, address, location: coords })}
+                label="DELIVERY ADDRESS *"
+                labelStyle={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#888', marginBottom: '5px', letterSpacing: '0.3px' }}
+                inputStyle={{
+                  width: '100%', backgroundColor: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px',
+                  padding: '10px 14px', color: '#fff', fontSize: '13px',
+                  outline: 'none', transition: 'border-color 0.2s',
+                  boxSizing: 'border-box',
+                }}
+              />
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
