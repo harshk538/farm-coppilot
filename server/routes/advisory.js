@@ -120,7 +120,7 @@ Return your response in STRICT JSON format with these exact keys:
     }
 
     // Call Gemini with model fallback loop
-    const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro'];
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'];
     let result = null;
     let lastError = null;
 
