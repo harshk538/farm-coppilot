@@ -173,7 +173,7 @@ router.get('/by-disease', async (req, res) => {
     if (primaryProducts.length === 0 && process.env.GEMINI_API_KEY) {
       try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
 
         // Provide catalog sample to AI
         const catalogSnippet = products.slice(0, 40).map(p =>

@@ -295,7 +295,7 @@ router.post('/requests/:id/quote', async (req, res) => {
     const ownerShare = Math.round(calculatedPrice * 0.9);
     const vendorCommission = calculatedPrice - ownerShare;
 
-    const existingQuoteIndex = targetReq.quotes.findIndex(q => q.shopId === shopId);
+    const existingQuoteIndex = targetReq.quotes.findIndex(q => q.ownerId === ownerId);
 
     const newQuote = {
       quoteId: `Q-${Math.floor(100 + Math.random() * 900)}`,

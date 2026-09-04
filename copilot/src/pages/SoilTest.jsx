@@ -271,6 +271,19 @@ export default function SoilTest({ user, onLogin }) {
     if (next) loadFluctuationHistory();
   };
 
+  const clearFluctHistory = async () => {
+    if (!user?.id || !selectedFarmId) return;
+    if (!window.confirm('Delete all raw fluctuation log entries for this farm?')) return;
+    try {
+      await axios.delete(`${SOIL_API}/history`, { params: { farmerId: user.id, farmId: selectedFarmId } });
+      setFluctHistory([]);
+      setNotice('Cleared raw fluctuation log.');
+      setTimeout(() => setNotice(''), 3000);
+    } catch {
+      setError('Could not clear raw fluctuation log.');
+    }
+  };
+
   useEffect(() => {
     loadTests(selectedFarmId);
     setShowFluctHistory(false);
@@ -694,19 +707,7 @@ export default function SoilTest({ user, onLogin }) {
               >
                 {connecting ? 'Connecting…' : 'Connect Meter'}
               </button>
-              <button
-                onClick={startDemoStream}
-                title="Simulate live NPK serial probe data stream on localhost"
-                style={{
-                  padding: '10px 14px',
-                  background: 'rgba(52, 211, 153, 0.12)',
-                  border: '1px solid rgba(52, 211, 153, 0.3)',
-                  borderRadius: '10px', color: '#34d399', fontSize: '13px',
-                  fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
-                }}
-              >
-                ⚡ Demo Probe Stream
-              </button>
+
             </div>
           )}
         </div>
@@ -851,22 +852,7 @@ export default function SoilTest({ user, onLogin }) {
         </div>
       )}
 
-      {/* ── Manual entry ────────────────────────────────────────────────── */}
-      {!connected && (
-        <button
-          onClick={() => { setShowManual(true); setError(''); }}
-          style={{
-            ...cardStyle, textAlign: 'left', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-          }}
-        >
-          <div>
-            <div style={{ color: '#fff', fontSize: '14px', fontWeight: 600, marginBottom: '3px' }}>✍️ Enter Values Manually</div>
-            <div style={{ color: '#666', fontSize: '12px' }}>No meter plugged in? Type the seven values, or load a demo reading.</div>
-          </div>
-          <span style={{ color: '#a78bfa', fontSize: '18px' }}>→</span>
-        </button>
-      )}
+
 
       {/* ── Past tests for this farm ────────────────────────────────────── */}
       <div style={cardStyle}>
@@ -925,12 +911,26 @@ export default function SoilTest({ user, onLogin }) {
 
         {/* Every reading the meter sent while still settling, not just the one that got saved above */}
         <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '14px' }}>
-          <button
-            onClick={toggleFluctHistory}
-            style={{ background: 'none', border: 'none', color: '#666', fontSize: '11px', cursor: 'pointer', padding: 0 }}
-          >
-            {showFluctHistory ? '▾ Hide raw fluctuation log' : '▸ Show raw fluctuation log'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <button
+              onClick={toggleFluctHistory}
+              style={{ background: 'none', border: 'none', color: '#666', fontSize: '11px', cursor: 'pointer', padding: 0 }}
+            >
+              {showFluctHistory ? '▾ Hide raw fluctuation log' : '▸ Show raw fluctuation log'}
+            </button>
+            {showFluctHistory && fluctHistory.length > 0 && (
+              <button
+                onClick={clearFluctHistory}
+                style={{
+                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)',
+                  borderRadius: '6px', color: '#f87171', fontSize: '10.5px', fontWeight: 600,
+                  cursor: 'pointer', padding: '3px 8px',
+                }}
+              >
+                🗑️ Clear Fluctuation Log
+              </button>
+            )}
+          </div>
           {showFluctHistory && (
             loadingFluctHistory ? (
               <p style={{ color: '#666', fontSize: '12px', margin: '8px 0 0' }}>Loading…</p>

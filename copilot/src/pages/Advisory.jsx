@@ -34,7 +34,6 @@ export default function Advisory({ user, onLogin }) {
   const [liveTranscript, setLiveTranscript] = useState('');
   const [showEnglish, setShowEnglish] = useState(false);
   const [selectedInstruction, setSelectedInstruction] = useState(null);
-  const [history, setHistory] = useState([]);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -48,26 +47,6 @@ export default function Advisory({ user, onLogin }) {
       }
     };
   }, []);
-
-  const loadHistory = () => {
-    if (!user?.id) { setHistory([]); return; }
-    axios.get(`${API_BASE_URL}/api/advisory/history?userId=${user.id}`)
-      .then(res => { if (res.data.success) setHistory(res.data.data); })
-      .catch(() => {});
-  };
-
-  useEffect(() => { loadHistory(); }, [user?.id]);
-
-  const viewHistoryItem = (h) => {
-    setResponse({ diagnosis: h.diagnosis, products: { recommendations: h.products || [] } });
-    setShowEnglish(false);
-    window.scrollTo({ top: document.querySelector('.advisory-results-wrap')?.offsetTop - 80 || 0, behavior: 'smooth' });
-  };
-
-  const deleteHistoryItem = async (id) => {
-    setHistory(prev => prev.filter(h => h.id !== id));
-    try { await axios.delete(`${API_BASE_URL}/api/advisory/history/${id}`); } catch (e) { /* ignore */ }
-  };
 
   const currentLangObj = INDIAN_LANGUAGES.find(l => l.code === inputLang) || INDIAN_LANGUAGES[0];
 
@@ -418,47 +397,6 @@ export default function Advisory({ user, onLogin }) {
         </div>
       </div>
 
-      {/* Past Reports */}
-      {user && history.length > 0 && (
-        <div className="advisory-results-wrap">
-          <div className="advisory-result-card animate-fade-up">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-white mb-3">
-              <span>🗂️</span> Past Reports
-            </h3>
-            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
-              {history.map(h => (
-                <div
-                  key={h.id}
-                  onClick={() => viewHistoryItem(h)}
-                  className="flex items-center gap-3 p-2 rounded-lg border border-white/10 hover:border-purple-500/30 cursor-pointer transition-colors"
-                >
-                  {h.image ? (
-                    <img src={h.image} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-lg flex-shrink-0">🌱</div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-white truncate">
-                      {h.diagnosis?.issueEnglish || h.diagnosis?.issue || 'Diagnosis'}
-                    </p>
-                    <p className="text-[10px] text-zinc-500">
-                      {h.createdAt ? new Date(h.createdAt).toLocaleString() : ''}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); deleteHistoryItem(h.id); }}
-                    className="text-zinc-500 hover:text-rose-400 text-xs px-1.5 py-0.5 flex-shrink-0"
-                    title="Delete this report"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Loading shimmer */}
       {loading && (

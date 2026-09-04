@@ -345,9 +345,13 @@ router.post('/history', async (req, res) => {
       capturedAt: new Date().toISOString(),
     };
 
-    const history = await readHistory();
-    history.push(entry);
-    await writeHistory(history);
+    const allHist = await readHistory();
+    allHist.push(entry);
+
+    // Keep only the latest 15 spot readings for this farm
+    const farmHist = allHist.filter(h => h.farmerId === farmerId && h.farmId === farmId).slice(-15);
+    const otherHist = allHist.filter(h => !(h.farmerId === farmerId && h.farmId === farmId));
+    await writeHistory([...otherHist, ...farmHist]);
 
     res.json({ success: true, entry });
   } catch (err) {
@@ -365,63 +369,32 @@ router.get('/history', async (req, res) => {
   }
 
   let history = (await readHistory()).filter(h => h.farmerId === farmerId && h.farmId === farmId);
-
-  // If no raw history recorded yet for this farm, generate realistic settling fluctuations
-  // based on existing saved soil tests for this farm so the user can inspect raw logs immediately.
-  if (history.length === 0) {
-    const tests = (await readTests()).filter(t => t.farmerId === farmerId && t.farmId === farmId);
-    if (tests.length > 0) {
-      const generated = [];
-      const allHist = await readHistory();
-      for (const t of tests) {
-        const baseTime = new Date(t.createdAt).getTime();
-        const r = t.readings;
-        // 5 settling frames per saved test showing settling movement
-        const offsets = [-6000, -4500, -3000, -1500, 0];
-        const noiseFactors = [
-          { n: -6.2, p: +14.5, k: -16.1, ph: -0.15, moisture: -3.2, temperature: -0.9, tds: -18.4 },
-          { n: +9.3, p: -12.2, k: +10.4, ph: +0.18, moisture: +2.1, temperature: +0.6, tds: +14.5 },
-          { n: -2.3, p: +5.0,  k: -3.8,  ph: -0.04, moisture: +0.8, temperature: -0.3, tds: -4.5 },
-          { n: +0.8, p: -1.5,  k: +1.2,  ph: +0.02, moisture: -0.2, temperature: +0.1, tds: +1.7 },
-          { n: 0,    p: 0,     k: 0,     ph: 0,     moisture: 0,    temperature: 0,    tds: 0 }
-        ];
-
-        for (let i = 0; i < offsets.length; i++) {
-          const nf = noiseFactors[i];
-          const frameReadings = {
-            n: Math.max(0, Number((r.n + nf.n).toFixed(1))),
-            p: Math.max(0, Number((r.p + nf.p).toFixed(1))),
-            k: Math.max(0, Number((r.k + nf.k).toFixed(1))),
-            ph: Math.max(0, Number(Math.min(14, r.ph + nf.ph).toFixed(2))),
-            moisture: Math.max(0, Number(Math.min(100, r.moisture + nf.moisture).toFixed(1))),
-            temperature: Number((r.temperature + nf.temperature).toFixed(1)),
-            tds: Math.max(0, Number((r.tds + nf.tds).toFixed(1)))
-          };
-          const entry = {
-            id: `HIST-${baseTime + offsets[i]}-${Math.random().toString(36).slice(2, 7)}`,
-            farmerId,
-            farmId,
-            readings: frameReadings,
-            extras: t.extras || {},
-            capturedAt: new Date(baseTime + offsets[i]).toISOString()
-          };
-          generated.push(entry);
-          allHist.push(entry);
-        }
-      }
-      await writeHistory(allHist);
-      history = generated;
-    }
-  }
-
   history.sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt));
 
-  // This log grows fast (a new row roughly every second the probe is
-  // inserted), so the page only ever asks for a recent slice of it.
-  const cap = Math.min(Number(limit) || 200, 500);
+  // Cap to strictly 15 spot readings max
+  const cap = Math.min(Number(limit) || 15, 15);
   history = history.slice(0, cap);
 
   res.json({ success: true, history });
+});
+
+// ── DELETE /api/soil/history  (clear raw fluctuation log for a farm) ────────
+router.delete('/history', async (req, res) => {
+  try {
+    const { farmerId, farmId } = req.query;
+    if (!farmerId || !farmId) {
+      return res.status(400).json({ success: false, message: 'farmerId and farmId are required.' });
+    }
+
+    const history = await readHistory();
+    const remaining = history.filter(h => !(h.farmerId === farmerId && h.farmId === farmId));
+    await writeHistory(remaining);
+
+    res.json({ success: true, message: 'Cleared raw fluctuation log.' });
+  } catch (err) {
+    console.error('Delete raw fluctuation history failed:', err.message);
+    res.status(500).json({ success: false, message: 'Could not clear raw fluctuation log.' });
+  }
 });
 
 // ── DELETE /api/soil/tests/:id ─────────────────────────────────────────────
@@ -523,10 +496,9 @@ async function loadCatalog() {
   return Array.isArray(data) ? data : (data.products || []);
 }
 
-function buildPrompt({ farm, latest, history, rawHistory = [], trends, weather, catalog, referenceData }) {
+function buildPrompt({ farm, latest, history, trends, weather, catalog, referenceData }) {
   const hasCrop = !!(farm.currentCrop && farm.currentCrop.trim());
   const pastCrops = (farm.cropHistory || []).map(c => c.crop).filter(Boolean);
-  const totalReadingsCount = (history.length || 0) + (rawHistory.length || 0);
 
   return `You are an agricultural soil advisor for a small farmer in India.
 
@@ -550,8 +522,6 @@ TDS: ${latest.readings.tds} ppm
 ${latest.extras?.ec ? `EC: ${latest.extras.ec} uS/cm` : ''}
 ${latest.extras?.salinity ? `Salinity: ${latest.extras.salinity}` : ''}
 
-=== RAW SPOT FLUCTUATION DATASET (${totalReadingsCount} TOTAL SPOT READINGS ANALYZED) ===
-${rawHistory.slice(0, 15).map((h, idx) => `Spot ${idx + 1} (${new Date(h.capturedAt).toLocaleTimeString('en-IN')}): N=${h.readings.n}, P=${h.readings.p}, K=${h.readings.k}, pH=${h.readings.ph}, Moist=${h.readings.moisture}%, Temp=${h.readings.temperature}C, TDS=${h.readings.tds}`).join('\n')}
 
 === ICAR & EXTENSION REFERENCE BENCHMARKS ===
 ${referenceData.cropBenchmark ? `Crop Ideal Benchmarks (${referenceData.cropBenchmark.crop}): N min/avg/max: ${referenceData.cropBenchmark.N.min}/${referenceData.cropBenchmark.N.avg}/${referenceData.cropBenchmark.N.max}, P: ${referenceData.cropBenchmark.P.min}/${referenceData.cropBenchmark.P.avg}/${referenceData.cropBenchmark.P.max}, K: ${referenceData.cropBenchmark.K.min}/${referenceData.cropBenchmark.K.avg}/${referenceData.cropBenchmark.K.max}, pH: ${referenceData.cropBenchmark.ph.min}-${referenceData.cropBenchmark.ph.max}` : 'No crop benchmark file match.'}
@@ -691,48 +661,6 @@ router.post('/analyze', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Save a soil test for this farm first.' });
     }
 
-    // Fetch raw spot fluctuation readings for this farm
-    let rawHistory = (await readHistory()).filter(h => h.farmerId === farmerId && h.farmId === farmId);
-    if (rawHistory.length === 0 && history.length > 0) {
-      // Auto-seed settling fluctuations if empty so report always has 10+ spot readings
-      const generated = [];
-      const allHist = await readHistory();
-      for (const t of history) {
-        const baseTime = new Date(t.createdAt).getTime();
-        const r = t.readings;
-        const offsets = [-6000, -4500, -3000, -1500, 0];
-        const noiseFactors = [
-          { n: -6.2, p: +14.5, k: -16.1, ph: -0.15, moisture: -3.2, temperature: -0.9, tds: -18.4 },
-          { n: +9.3, p: -12.2, k: +10.4, ph: +0.18, moisture: +2.1, temperature: +0.6, tds: +14.5 },
-          { n: -2.3, p: +5.0,  k: -3.8,  ph: -0.04, moisture: +0.8, temperature: -0.3, tds: -4.5 },
-          { n: +0.8, p: -1.5,  k: +1.2,  ph: +0.02, moisture: -0.2, temperature: +0.1, tds: +1.7 },
-          { n: 0,    p: 0,     k: 0,     ph: 0,     moisture: 0,    temperature: 0,    tds: 0 }
-        ];
-        for (let i = 0; i < offsets.length; i++) {
-          const nf = noiseFactors[i];
-          const entry = {
-            id: `HIST-${baseTime + offsets[i]}-${Math.random().toString(36).slice(2, 7)}`,
-            farmerId,
-            farmId,
-            readings: {
-              n: Math.max(0, Number((r.n + nf.n).toFixed(1))),
-              p: Math.max(0, Number((r.p + nf.p).toFixed(1))),
-              k: Math.max(0, Number((r.k + nf.k).toFixed(1))),
-              ph: Math.max(0, Number(Math.min(14, r.ph + nf.ph).toFixed(2))),
-              moisture: Math.max(0, Number(Math.min(100, r.moisture + nf.moisture).toFixed(1))),
-              temperature: Number((r.temperature + nf.temperature).toFixed(1)),
-              tds: Math.max(0, Number((r.tds + nf.tds).toFixed(1)))
-            },
-            extras: t.extras || {},
-            capturedAt: new Date(baseTime + offsets[i]).toISOString()
-          };
-          generated.push(entry);
-          allHist.push(entry);
-        }
-      }
-      await writeHistory(allHist);
-      rawHistory = generated;
-    }
 
     const latest = history[history.length - 1];
     const trends = computeTrends(history);
@@ -740,16 +668,34 @@ router.post('/analyze', async (req, res) => {
     const referenceData = await evaluateReferenceData(farm, latest.readings, history);
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        maxOutputTokens: 16384,
-        temperature: 0.6,
-      },
-    });
     const catalog = await loadCatalog();
-    const result = await model.generateContent(buildPrompt({ farm, latest, history, rawHistory, trends, weather, catalog, referenceData }));
+    const promptText = buildPrompt({ farm, latest, history, trends, weather, catalog, referenceData });
+
+    const modelsToTry = ['gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest'];
+    let result = null;
+    let lastError = null;
+
+    for (const m of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: m,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            maxOutputTokens: 16384,
+            temperature: 0.6,
+          },
+        });
+        result = await model.generateContent(promptText);
+        if (result) break;
+      } catch (err) {
+        lastError = err;
+        console.warn(`Model ${m} failed (${err.status || err.message}), trying next fallback...`);
+      }
+    }
+
+    if (!result) {
+      throw lastError || new Error('All Gemini AI model requests failed.');
+    }
 
     const finishReason = result.response?.candidates?.[0]?.finishReason;
     if (finishReason && finishReason !== 'STOP') {

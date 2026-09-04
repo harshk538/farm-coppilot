@@ -51,7 +51,16 @@ export async function writeCollection(name, array) {
     if (Model) {
       try {
         await Model.deleteMany({});
-        if (array.length) await Model.insertMany(array, { ordered: true });
+        if (array.length) {
+          const cleanArray = array.map(item => {
+            if (item && typeof item === 'object') {
+              const { _id, ...rest } = item;
+              return rest;
+            }
+            return item;
+          });
+          await Model.insertMany(cleanArray, { ordered: false });
+        }
       } catch (err) {
         console.error(`Mongo write failed for "${name}":`, err.message);
       }

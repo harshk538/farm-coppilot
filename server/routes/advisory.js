@@ -72,7 +72,7 @@ router.post('/', upload.single('image'), async (req, res) => {
 
     // Initialize Gemini AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
     console.log("📝 Incoming Query:", query || "(no text)", "| Target Language:", language || "English");
     if (image) console.log("📷 Incoming Image:", image.path);

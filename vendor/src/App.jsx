@@ -476,6 +476,32 @@ function EquipmentRentalsPage({ activeShop, owners }) {
     }
   };
 
+  const handleSendAllQuotes = async (ownersToQuote) => {
+    if (!selectedReq || !ownersToQuote || ownersToQuote.length === 0) return;
+    setSendingQuote(true);
+
+    try {
+      for (const owner of ownersToQuote) {
+        await axios.post(`${EQUIP_API}/requests/${selectedReq.id}/quote`, {
+          shopId: activeShop.id,
+          shopName: activeShop.name,
+          shopPhone: activeShop.phone,
+          ownerId: owner.id
+        });
+      }
+
+      setToastMsg(`Dispatched ${ownersToQuote.length} tractor quote(s) to farmer!`);
+      setTimeout(() => setToastMsg(null), 4000);
+      setSelectedReq(null);
+      setSelectedOwnerId('');
+      fetchEquipRequests();
+    } catch (err) {
+      console.error("Failed to send quotes:", err);
+    } finally {
+      setSendingQuote(false);
+    }
+  };
+
   const shopOwners = owners.filter(o => o.shopId === activeShop.id && o.available);
   // Only owners whose machine type matches what the farmer actually asked for —
   // a Tractor request should never let a Water Pump owner be dispatched to it.
@@ -591,49 +617,97 @@ function EquipmentRentalsPage({ activeShop, owners }) {
       {/* Quote Dispatch Modal */}
       {selectedReq && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-md w-full space-y-5">
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-bold text-white">Assign Machine for Request #{selectedReq.id}</h3>
-              <button onClick={() => setSelectedReq(null)} className="text-zinc-500 hover:text-white">✕</button>
+              <div>
+                <h3 className="text-base font-bold text-white">Assign Fleet Machines for Request #{selectedReq.id}</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">Select individual machines or dispatch quotes for your entire fleet so the farmer can compare prices.</p>
+              </div>
+              <button onClick={() => setSelectedReq(null)} className="text-zinc-500 hover:text-white text-lg">✕</button>
             </div>
 
             <div className="space-y-3 text-xs">
               <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-1">
-                <div className="text-white font-semibold">{selectedReq.equipmentTypeName} — {selectedReq.workType}</div>
-                <div className="text-zinc-400">Land Area: {selectedReq.landAreaAcres} Acres · Location: {selectedReq.location}</div>
+                <div className="text-white font-semibold flex items-center justify-between">
+                  <span>🚜 {selectedReq.equipmentTypeName} — {selectedReq.workType}</span>
+                  <span className="text-purple-400 font-mono text-[11px]">{selectedReq.landAreaAcres} Acres</span>
+                </div>
+                <div className="text-zinc-400 text-[11px]">Location: {selectedReq.location} · Date: {selectedReq.requiredDate}</div>
               </div>
 
               <div>
-                <label className="block text-zinc-400 font-semibold mb-1">Select Available Equipment Owner in Your Network:</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-zinc-300 font-semibold">Available Fleet Machines ({matchingOwners.length}):</label>
+                  {matchingOwners.length > 1 && (
+                    <button
+                      type="button"
+                      disabled={sendingQuote}
+                      onClick={() => handleSendAllQuotes(matchingOwners)}
+                      className="text-[11px] font-bold text-purple-300 hover:text-purple-200 bg-purple-900/60 hover:bg-purple-800/80 px-2.5 py-1 rounded-lg border border-purple-500/40 cursor-pointer shadow transition-all"
+                    >
+                      🚀 Dispatch All ({matchingOwners.length}) Fleet Quotes
+                    </button>
+                  )}
+                </div>
+
                 {matchingOwners.length === 0 ? (
                   <div className="p-3 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-xl text-xs">
                     No available {selectedReq.equipmentTypeName} owners registered under {activeShop.name}. Please register a matching owner in <strong>Fleet & Owners</strong> tab.
                   </div>
                 ) : (
-                  <select
-                    value={selectedOwnerId}
-                    onChange={(e) => setSelectedOwnerId(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 text-white p-2.5 rounded-xl outline-none"
-                  >
-                    {matchingOwners.map(o => (
-                      <option key={o.id} value={o.id}>
-                        {o.ownerName} — {o.machineName} ({o.rating}★){o.biddingPrice ? ` — ₹${o.biddingPrice}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {matchingOwners.map(o => {
+                      const existingQuote = (selectedReq.quotes || []).find(q => q.ownerId === o.id);
+                      const rate = o.biddingPrice || 500;
+                      const calculatedPrice = selectedReq.landAreaAcres * rate;
+                      const isSelected = selectedOwnerId === o.id;
+
+                      return (
+                        <div
+                          key={o.id}
+                          onClick={() => setSelectedOwnerId(o.id)}
+                          className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                            isSelected
+                              ? 'bg-purple-950/60 border-purple-500 shadow-md ring-1 ring-purple-500/50'
+                              : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
+                          }`}
+                        >
+                          <div>
+                            <div className="font-bold text-white text-xs flex items-center gap-1.5">
+                              <span>🚜 {o.machineName}</span>
+                              {existingQuote && (
+                                <span className="bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-mono">
+                                  ✓ Quoted ₹{existingQuote.calculatedPrice}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-zinc-400 mt-0.5">
+                              Driver: <strong className="text-zinc-200">{o.ownerName}</strong> · Bid Rate: ₹{rate}/acre · {o.rating || 4.8}★
+                            </div>
+                          </div>
+
+                          <div className="text-right pl-3">
+                            <div className="text-xs font-bold text-emerald-400">₹{calculatedPrice}</div>
+                            <div className="text-[10px] text-zinc-500">for {selectedReq.landAreaAcres} acres</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
 
-              {/* Price & Revenue Split Preview — based on the selected owner's own bidding price */}
+              {/* Price & Revenue Split Preview for Selected Machine */}
               {(() => {
                 const selectedOwner = matchingOwners.find(o => o.id === selectedOwnerId);
-                const rate = selectedOwner?.biddingPrice || 500;
+                if (!selectedOwner) return null;
+                const rate = selectedOwner.biddingPrice || 500;
                 const quotePrice = selectedReq.landAreaAcres * rate;
                 return (
                   <div className="bg-purple-950/40 border border-purple-500/30 p-3 rounded-xl space-y-1">
-                    <div className="flex justify-between items-center text-sm font-bold text-white">
-                      <span>Quote Price ({selectedOwner ? `${selectedOwner.ownerName}'s bid` : 'select an owner'}):</span>
-                      <span className="text-emerald-400">₹{quotePrice}</span>
+                    <div className="flex justify-between items-center text-xs font-bold text-white">
+                      <span>Selected Quote ({selectedOwner.ownerName} - {selectedOwner.machineName}):</span>
+                      <span className="text-emerald-400 font-mono text-sm">₹{quotePrice}</span>
                     </div>
                     <div className="flex justify-between text-[11px] text-zinc-400">
                       <span>Owner Payout (90%): ₹{Math.round(quotePrice * 0.9)}</span>
@@ -654,9 +728,9 @@ function EquipmentRentalsPage({ activeShop, owners }) {
               <button
                 disabled={!selectedOwnerId || sendingQuote}
                 onClick={handleSendQuote}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg cursor-pointer disabled:opacity-50"
               >
-                {sendingQuote ? 'Dispatching...' : 'Dispatch Quote'}
+                {sendingQuote ? 'Dispatching...' : 'Dispatch Selected Quote'}
               </button>
             </div>
           </div>
@@ -685,11 +759,53 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus, onUpda
   const EMPTY_FORM = { ownerName: '', ownerPhone: '', machineType: 'EQ-TRAC', machineName: '', location: '', biddingPrice: '' };
   const [formData, setFormData] = useState(EMPTY_FORM);
 
+  const [locating, setLocating] = useState(false);
+  const [coords, setCoords] = useState(null);
+  const [locateError, setLocateError] = useState('');
+
   const shopOwners = owners.filter(o => o.shopId === activeShop.id);
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocateError('Geolocation is not supported by your browser');
+      return;
+    }
+    setLocating(true);
+    setLocateError('');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/auth/reverse-geocode`, {
+            params: { lat, lng }
+          });
+          if (res.data && res.data.success && res.data.address) {
+            setFormData(prev => ({ ...prev, location: res.data.address }));
+          } else {
+            setFormData(prev => ({ ...prev, location: `${lat.toFixed(4)}, ${lng.toFixed(4)}` }));
+          }
+        } catch (err) {
+          console.error('Reverse geocode error:', err);
+          setFormData(prev => ({ ...prev, location: `${lat.toFixed(4)}, ${lng.toFixed(4)}` }));
+        } finally {
+          setLocating(false);
+        }
+      },
+      (_err) => {
+        setLocating(false);
+        setLocateError('Could not fetch GPS location. Please check browser permissions.');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
 
   const openAddModal = () => {
     setEditingOwnerId(null);
     setFormData(EMPTY_FORM);
+    setCoords(null);
+    setLocateError('');
     setShowAddModal(true);
   };
 
@@ -703,6 +819,8 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus, onUpda
       location: owner.location || '',
       biddingPrice: owner.biddingPrice || ''
     });
+    setCoords(null);
+    setLocateError('');
     setShowAddModal(true);
   };
 
@@ -710,6 +828,8 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus, onUpda
     setShowAddModal(false);
     setEditingOwnerId(null);
     setFormData(EMPTY_FORM);
+    setCoords(null);
+    setLocateError('');
   };
 
   const handleSubmit = (e) => {
@@ -798,7 +918,7 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus, onUpda
       {/* Add Owner Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-md w-full space-y-4">
+          <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-base font-bold text-white">{editingOwnerId ? 'Manage Machine Owner' : 'Register Equipment Owner'}</h3>
               <button type="button" onClick={closeModal} className="text-zinc-500 hover:text-white">✕</button>
@@ -851,15 +971,58 @@ function FleetPage({ activeShop, owners, onAddOwner, onToggleOwnerStatus, onUpda
               />
             </div>
 
+            {/* Address & Location with Map Preview */}
             <div>
-              <label className="block text-xs text-zinc-400 font-semibold mb-1">Address / Location</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs text-zinc-400 font-semibold">Address / Location</label>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={locating}
+                  className="text-[11px] font-medium text-purple-400 hover:text-purple-300 flex items-center gap-1 cursor-pointer bg-purple-950/50 hover:bg-purple-900/60 px-2.5 py-1 rounded-lg border border-purple-500/30 transition-all disabled:opacity-50"
+                >
+                  {locating ? (
+                    <>
+                      <span className="animate-spin text-[10px]">⏳</span> Locating...
+                    </>
+                  ) : (
+                    <>
+                      <span>📍</span> Use Current Location
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Map Preview Box Above Address */}
+              <div className="mb-2 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 relative shadow-inner">
+                <iframe
+                  title="Owner Location Map"
+                  width="100%"
+                  height="140"
+                  style={{ border: 0, display: 'block' }}
+                  loading="lazy"
+                  src={`https://maps.google.com/maps?q=${coords ? `${coords.lat},${coords.lng}` : encodeURIComponent(formData.location || activeShop?.location || 'Kumbalgodu, Bengaluru')}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                />
+                {coords && (
+                  <div className="absolute top-2 left-2 bg-zinc-900/90 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-emerald-400 border border-emerald-500/30 font-mono flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    GPS: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
+                  </div>
+                )}
+              </div>
+
               <input
                 type="text"
                 value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 text-white text-xs p-2.5 rounded-xl outline-none"
+                onChange={(e) => {
+                  setFormData({ ...formData, location: e.target.value });
+                  setLocateError('');
+                }}
+                placeholder="Type location or tap 'Use Current Location'"
+                className="w-full bg-zinc-950 border border-zinc-800 text-white text-xs p-2.5 rounded-xl outline-none focus:border-purple-500 transition-colors"
                 required
               />
+              {locateError && <p className="text-[11px] text-red-400 mt-1">{locateError}</p>}
             </div>
 
             <div>

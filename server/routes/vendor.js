@@ -1,6 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import { readConfig, writeConfig } from '../utils/mongoStore.js';
+import { sendSMS } from '../utils/sms.js';
 
 const router = express.Router();
 
@@ -275,9 +276,35 @@ router.patch('/orders/:id/status', async (req, res) => {
     targetOrder.updatedAt = new Date().toISOString();
     await writeOrders(orders);
 
+    // If order status is marked as 'ready', trigger Fast2SMS notification
+    if (status === 'ready') {
+      const recipientPhone = targetOrder.farmerPhone || '7070799420';
+      const shopName = targetOrder.claimedByShopName || targetOrder.shopName || 'Vendor Shop';
+      const orderId = targetOrder.id || id;
+      const message = `Farm Copilot: Order ${orderId} is READY FOR PICKUP at ${shopName}. Please collect your order. Thank you!`;
+      
+      // Async trigger SMS so it doesn't block API response
+      sendSMS(recipientPhone, message)
+        .then(result => console.log(`[SMS Status]:`, result))
+        .catch(err => console.error('[SMS Failed]:', err));
+    }
+
     res.json({ success: true, data: targetOrder });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST test SMS endpoint
+router.post('/test-sms', async (req, res) => {
+  try {
+    const { phone, message } = req.body;
+    const targetPhone = phone || '7070799420';
+    const msg = message || 'Farm Copilot Test: Order ORD-1963 is READY FOR PICKUP at SHRIZEE AGRO FOODS!';
+    const result = await sendSMS(targetPhone, msg);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
