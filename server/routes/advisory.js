@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { Buffer } from 'buffer';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { readConfig, appendToCollection, queryCollection, deleteFromCollection } from '../utils/mongoStore.js';
 
