@@ -28,16 +28,35 @@ export default function Orders({ user, onLogin }) {
   });
   const [submittingDelivery, setSubmittingDelivery] = useState(false);
 
-  // Load persistent AI recommended products
+  // Load persistent AI recommended products with catalog fallback
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('fc_advisory_products');
-      if (stored) {
-        setRecommendedProducts(JSON.parse(stored));
+    const loadProducts = async () => {
+      let prods = [];
+      try {
+        const stored = localStorage.getItem('fc_advisory_products');
+        if (stored) {
+          prods = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.error("Failed to parse recommended products:", e);
       }
-    } catch (e) {
-      console.error("Failed to parse recommended products:", e);
-    }
+
+      // If no AI recommended products saved yet, fetch top catalog products as recommendations
+      if (!prods || prods.length === 0) {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/products`);
+          if (res.data.success && res.data.data) {
+            prods = res.data.data.slice(0, 6);
+          }
+        } catch (err) {
+          console.error("Failed to fetch catalog fallback products:", err);
+        }
+      }
+
+      setRecommendedProducts(prods || []);
+    };
+
+    loadProducts();
   }, []);
 
   // Fetch Live Farmer Orders & Poll every 3 seconds

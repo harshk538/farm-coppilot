@@ -231,20 +231,14 @@ export default function Treatment() {
         .catch(() => loadShops(userLocation.lat || 12.8006, userLocation.lng || 77.5084));
     };
 
-    if (forceGps && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => loadShops(pos.coords.latitude, pos.coords.longitude),
-        () => fallbackToBackendIp(),
-        { enableHighAccuracy: true, timeout: 6000 }
-      );
-      return;
-    }
-
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => loadShops(pos.coords.latitude, pos.coords.longitude),
-        () => fallbackToBackendIp(),
-        { enableHighAccuracy: false, timeout: 3000 }
+        (err) => {
+          console.warn('Geolocation warning/fallback:', err);
+          fallbackToBackendIp();
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
       );
     } else {
       fallbackToBackendIp();
@@ -870,7 +864,21 @@ export default function Treatment() {
                     zoomControl: true,
                   }}
                 >
-                  {!equipTrack && !directions && <Marker position={userLocation} icon={{ url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' }} />}
+                  {!equipTrack && !directions && userLocation && (
+                    <Marker
+                      position={userLocation}
+                      title="Your Current Location"
+                      zIndex={1000}
+                      icon={window.google ? {
+                        path: window.google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: '#3b82f6',
+                        fillOpacity: 1,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 3,
+                      } : undefined}
+                    />
+                  )}
                   {!equipTrack && !directions && !shopLoading && displayedShops.map((shop, i) => shop.location && (
                     <Marker key={i} position={{ lat: shop.location.lat, lng: shop.location.lng }} onClick={() => handleShopSelect(shop)} />
                   ))}
@@ -885,7 +893,19 @@ export default function Treatment() {
                       <Marker position={(vendorShopCoords && vendorShopCoords[equipTrack.shopId]) || SHOP_LOCATIONS[equipTrack.shopId] || userLocation} label={{ text: '🏬', fontSize: '20px' }} />
                       <Marker position={equipTrack.destination || FARMER_FIELD_LOCATION} label={{ text: '🌾', fontSize: '20px' }} />
                       {equipDriverPos && (
-                        <Marker position={equipDriverPos} icon={{ url: 'http://maps.google.com/mapfiles/ms/icons/orange-dot.png' }} />
+                        <Marker
+                          position={equipDriverPos}
+                          title="Driver Location"
+                          zIndex={999}
+                          icon={window.google ? {
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: 9,
+                            fillColor: '#f97316',
+                            fillOpacity: 1,
+                            strokeColor: '#ffffff',
+                            strokeWeight: 3,
+                          } : undefined}
+                        />
                       )}
                     </>
                   )}

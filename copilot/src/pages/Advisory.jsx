@@ -196,6 +196,9 @@ export default function Advisory({ user, onLogin }) {
           timestamp: Date.now()
         }));
       }
+      if (data?.products?.recommendations && data.products.recommendations.length > 0) {
+        localStorage.setItem('fc_advisory_products', JSON.stringify(data.products.recommendations));
+      }
     } catch (err) {
       console.error('Advisory submission error:', err);
       setResponse({ diagnosis: { issue: 'Connection Error', summary: '❌ Could not reach the AI service. Please check your connection and API key.', severity: 'critical', urgency: 'immediate' } });
