@@ -1,0 +1,9 @@
+{
+  "name": "farm-copilot-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "cd server && npm install",
+    "start": "cd server && node index.js"
+  }
+}
