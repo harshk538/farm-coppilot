@@ -520,11 +520,13 @@ export default function SoilTest({ user, onLogin }) {
         stabilitySeconds: source === 'device' ? STABLE_SECONDS : null,
       });
       if (res.data.success) {
-        setNotice(`Soil test saved for ${selectedFarm?.name || 'this farm'}.`);
-        setTimeout(() => setNotice(''), 4000);
+        setNotice(`Soil test saved for ${selectedFarm?.name || 'this farm'}. Redirecting to AI Report...`);
         setShowManual(false);
         setSavedKey(res.data.test?.id || String(Date.now()));
         loadTests(selectedFarmId);
+        setTimeout(() => {
+          navigate(`/soil-report?farm=${selectedFarmId}`);
+        }, 1200);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Could not save this soil test.');
@@ -712,15 +714,69 @@ export default function SoilTest({ user, onLogin }) {
           )}
         </div>
 
+        {/* Action bar for manual input & demo reading */}
+        <div style={{
+          marginTop: '14px',
+          paddingTop: '14px',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          gap: '10px',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <button
+            onClick={() => {
+              setManualForm(Object.fromEntries(PARAMS.map(k => [k, String(DEMO_READING[k])])));
+              setShowManual(true);
+            }}
+            style={{
+              padding: '10px 16px',
+              background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              border: 'none',
+              borderRadius: '10px',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            📝 Enter Soil Values Manually
+          </button>
+
+          <button
+            onClick={startDemoStream}
+            style={{
+              padding: '10px 16px',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '10px',
+              color: '#a78bfa',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            ⚡ Test Demo Stream
+          </button>
+        </div>
+
         {!serialSupported && (
-          <p style={{
-            marginTop: '12px', marginBottom: 0, fontSize: '12px', color: '#fbbf24',
+          <div style={{
+            marginTop: '12px', fontSize: '12px', color: '#fbbf24',
             background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
-            borderRadius: '8px', padding: '10px 12px',
+            borderRadius: '10px', padding: '12px 14px',
+            display: 'flex', flexDirection: 'column', gap: '6px'
           }}>
-            This browser can't read USB devices. Open Farm Copilot in <strong>Chrome</strong> or <strong>Edge</strong> on a
-            laptop — or use "Enter Manually" below.
-          </p>
+            <span>
+              📱 <strong>Mobile Device Detected:</strong> Web USB serial connection works with USB cables on laptops (Chrome/Edge). On your phone, tap <strong>Enter Soil Values Manually</strong> above to input your readings or tap <strong>Test Demo Stream</strong>!
+            </span>
+          </div>
         )}
         {serialError && (
           <p style={{ marginTop: '12px', marginBottom: 0, fontSize: '12px', color: '#f87171' }}>{serialError}</p>
