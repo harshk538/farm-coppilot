@@ -220,7 +220,8 @@ export default function SoilTest({ user, onLogin }) {
   const samplesRef = useRef([]);   // recent complete readings, for averaging
   const capturedRef = useRef(false); // once true the page stops looking, full stop
 
-  const serialSupported = typeof navigator !== 'undefined' && 'serial' in navigator;
+  const isNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+  const serialSupported = isNative || (typeof navigator !== 'undefined' && 'serial' in navigator);
   const selectedFarm = farms.find(f => f.id === selectedFarmId) || null;
   const isStable = stableElapsed >= STABLE_SECONDS;
 
@@ -400,20 +401,38 @@ export default function SoilTest({ user, onLogin }) {
   const connect = async () => {
     setSerialError('');
     if (!serialSupported) {
-      setSerialError('This browser cannot talk to USB devices. Use Chrome or Edge on a laptop.');
+      setSerialError('USB serial connection is not supported in this browser. Use Chrome/Edge on laptop or the Farm Copilot Android App.');
       return;
     }
     setConnecting(true);
     try {
-      const port = await navigator.serial.requestPort();
-      await port.open({ baudRate: Number(baudRate) });
-      portRef.current = port;
-      keepReadingRef.current = true;
-      setConnected(true);
-      readLoop();
+      if (isNative && window.Capacitor?.Plugins?.UsbSerial) {
+        const UsbSerial = window.Capacitor.Plugins.UsbSerial;
+        const res = await UsbSerial.openPort({ baudRate: Number(baudRate) });
+        if (res.connected) {
+          keepReadingRef.current = true;
+          setConnected(true);
+          setStreaming(true);
+          startNewReading();
+          UsbSerial.removeAllListeners();
+          UsbSerial.addListener('usbData', (data) => {
+            if (data?.line) handleLine(data.line);
+          });
+          UsbSerial.addListener('usbError', (err) => {
+            if (keepReadingRef.current) setSerialError(err?.error || 'USB meter disconnected.');
+          });
+        }
+      } else {
+        const port = await navigator.serial.requestPort();
+        await port.open({ baudRate: Number(baudRate) });
+        portRef.current = port;
+        keepReadingRef.current = true;
+        setConnected(true);
+        readLoop();
+      }
     } catch (err) {
       if (err?.name !== 'NotFoundError') {   // NotFoundError = the picker was dismissed
-        setSerialError(err?.message || 'Could not open the meter.');
+        setSerialError(err?.message || err?.errorMessage || 'Could not open the meter. Ensure OTG/USB cable is connected.');
       }
     } finally {
       setConnecting(false);
@@ -444,6 +463,12 @@ export default function SoilTest({ user, onLogin }) {
       simIntervalRef.current = null;
     }
     keepReadingRef.current = false;
+    if (isNative && window.Capacitor?.Plugins?.UsbSerial) {
+      try {
+        await window.Capacitor.Plugins.UsbSerial.removeAllListeners();
+        await window.Capacitor.Plugins.UsbSerial.closePort();
+      } catch {}
+    }
     try { await readerRef.current?.cancel(); } catch { /* already gone */ }
     try { await closedRef.current; } catch { /* already gone */ }
     try { await portRef.current?.close(); } catch { /* already gone */ }
