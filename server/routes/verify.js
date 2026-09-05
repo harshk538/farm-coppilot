@@ -20,23 +20,27 @@ router.get('/gemini-handshake', async (req, res) => {
     const keysToTry = [process.env.GEMINI_API_KEY, WORKING_FALLBACK_KEY].filter((v, i, a) => v && a.indexOf(v) === i);
     let lastError = null;
 
+    const modelsToTry = ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash'];
+    
     for (const key of keysToTry) {
-        try {
-            const genAI = new GoogleGenerativeAI(key);
-            const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
-            const result = await model.generateContent('Reply with just the word: CONNECTED');
-            const text = result.response.text().trim();
+        for (const modelName of modelsToTry) {
+            try {
+                const genAI = new GoogleGenerativeAI(key);
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent('Reply with just the word: CONNECTED');
+                const text = result.response.text().trim();
 
-            return res.json({
-                success: true,
-                status: '✅ CONNECTED',
-                model: 'gemini-3.6-flash',
-                keyPrefix: key.substring(0, 8) + '...',
-                response: text
-            });
-        } catch (err) {
-            console.warn(`⚠️ Handshake failed for key ${key.substring(0, 8)}...:`, err.message);
-            lastError = err;
+                return res.json({
+                    success: true,
+                    status: '✅ CONNECTED',
+                    model: modelName,
+                    keyPrefix: key.substring(0, 8) + '...',
+                    response: text
+                });
+            } catch (err) {
+                console.warn(`⚠️ Handshake failed for model ${modelName} with key ${key.substring(0, 8)}...:`, err.message);
+                lastError = err;
+            }
         }
     }
 
