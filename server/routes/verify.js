@@ -16,8 +16,7 @@ router.post('/', (req, res) => {
 
 // Gemini API handshake test route
 router.get('/gemini-handshake', async (req, res) => {
-    const WORKING_FALLBACK_KEY = Buffer.from('QVEuQWI4Uk42TElBUjhaUE1LdVIydGxWbGhWSHRiN2swZXl1S3E3aEtmQWlfaDRGY2wzdHc=', 'base64').toString('utf-8');
-    const keysToTry = [process.env.GEMINI_API_KEY, WORKING_FALLBACK_KEY].filter((v, i, a) => v && a.indexOf(v) === i);
+    const keysToTry = [process.env.GEMINI_API_KEY].filter(Boolean);
     let lastError = null;
 
     const modelsToTry = ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash'];
