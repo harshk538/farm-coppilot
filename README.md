@@ -1,42 +1,49 @@
-# 🌾 Farm Copilot
+# Farm Copilot
 
-AI-powered crop diagnosis, disease treatment recommendations, product verification, and personalized farming solutions — all in one place.
+Farm Copilot is an intelligent agricultural platform designed to bridge the gap between crop diagnosis and real-world farm management. By combining AI-driven diagnostic analysis with local vendor networks, the system enables farmers to identify crop issues, receive dosage guidance, source authentic supplies, and request machinery support through a unified interface.
 
 ---
 
-## 🚀 Live Applications
+## Live Applications
 
 | Application | Description | Live Link |
 | :--- | :--- | :--- |
-| **Farmer Web App** 🌾 | Primary platform for crop diagnosis, treatment, weather, and ordering | [farm-coppilot.vercel.app](https://farm-coppilot.vercel.app) |
-| **AgriVendor Portal** 🛍️ | Merchant dashboard for managing orders, stock, and equipment fleet | [farm-copilot-vendor-lac.vercel.app](https://farm-copilot-vendor-lac.vercel.app) |
+| **Farmer Web Application** | Core platform for diagnosis, treatment guidelines, weather insights, and local supply orders | [farm-coppilot.vercel.app](https://farm-coppilot.vercel.app) |
+| **AgriVendor Portal** | Merchant dashboard for order fulfillment, inventory management, and fleet dispatch | [farm-copilot-vendor-lac.vercel.app](https://farm-copilot-vendor-lac.vercel.app) |
 
 ---
 
-## ✨ Features
+## Key Capabilities
 
-- **🤖 AI Crop Diagnosis**: Powered by Google Gemini AI for instant disease detection, severity rating, and confidence scoring.
-- **💊 Treatment & Dosage Calculator**: Get tailored recommendations and dosage instructions for crops.
-- **🛒 Nearby Agri-Shop Order Broadcasting**: Broadcast chemical and treatment orders directly to local vendors.
-- **🚜 Machinery & Equipment Rental**: Request tractor and harvester rentals from nearby equipment fleets.
-- **🧪 Soil Report AI Analysis**: Analyze soil parameters (NPK, pH, Moisture) with actionable soil health recommendations.
+→ **AI Crop Diagnosis**: Powered by Google Gemini AI, providing immediate disease analysis, severity ratings, and confidence evaluations from crop photos or descriptions.
+
+→ **Treatment & Dosage Guidance**: Tailored agricultural recommendations with precise chemical dosage calculations based on crop type and affected area.
+
+→ **Local Order Broadcasting**: Direct request dispatching to nearby verified agricultural shops for fast product procurement and delivery tracking.
+
+→ **Machinery & Equipment Rental**: Streamlined rental requests for tractors, harvesters, and specialized farm equipment from registered vendor fleets.
+
+→ **Soil Health Analysis**: Automated evaluation of soil metrics including NPK levels, pH balance, and moisture content with actionable soil enrichment steps.
 
 ---
 
-## 📁 Repository Structure
+## Architecture Overview
 
 ```text
-├── copilot/      # Farmer-facing Web Application (React + Vite)
-├── vendor/       # AgriVendor Merchant Portal (React + Vite)
-├── server/       # Express Backend API & AI Integration (Node.js)
-└── PRODUCT.md    # Detailed Product & Architecture Schema
+├── copilot/      # Farmer-facing Web Application (React, Vite)
+├── vendor/       # Merchant & Fleet Management Portal (React, Vite)
+├── server/       # Central Backend Services & Gemini AI Integration (Node.js, Express)
+└── PRODUCT.md    # Product Specifications & Architecture Reference
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Technology Stack
 
-- **Frontend**: React, Vite, Lucide Icons, CSS3
-- **Backend**: Node.js, Express.js
-- **AI Integration**: Google Gemini AI (`gemini-2.5-flash`)
-- **Deployment**: Vercel & Render
+→ **Frontend Frameworks**: React, Vite, CSS3
+
+→ **Backend Engine**: Node.js, Express.js REST APIs
+
+→ **Artificial Intelligence**: Google Gemini AI (`gemini-2.5-flash`)
+
+→ **Cloud Infrastructure**: Vercel & Render
